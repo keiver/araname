@@ -2,7 +2,7 @@ import React, {useState, useEffect, useRef, useCallback} from "react"
 import {View, StyleSheet, Dimensions, Text, Animated} from "react-native"
 import {Gesture, GestureDetector, GestureHandlerRootView} from "react-native-gesture-handler"
 import Reanimated, {useSharedValue, runOnJS} from "react-native-reanimated"
-import CircleRendererSkia, {Circle, CircleState} from "./Renderer"
+import CircleRendererSkia, {Circle, CircleState} from "./Renderer" // Update import path if needed
 
 const {width, height} = Dimensions.get("window")
 
@@ -10,14 +10,14 @@ const {width, height} = Dimensions.get("window")
 const GRAVITY = 0 // Set to 0 to remove gravity effect
 const BOUNCE = 0.7
 const FRICTION = 0.98
-const MAX_PULL_DISTANCE = 150
+const MAX_PULL_DISTANCE = Math.max(width, height) * 0.4 // Maximum distance for dragging the circle
 
 // Color configurations for styling
 const COLORS = {
   BACKGROUND: "#000000",
   PANEL_BACKGROUND: "rgba(0, 0, 0, 0.7)",
   TEXT: "#ffffff",
-  SLINGSHOT: "rgba(100, 255, 100, 0.7)",
+  SLINGSHOT: "rgba(100, 255, 180, 0.7)",
   SCORE_TEXT: "#ffffff",
   INSTRUCTIONS_TEXT: "#ffffff",
   HIGHLIGHT: "rgba(64, 224, 255, 0.8)"
@@ -38,7 +38,7 @@ const CircleGameExample: React.FC = () => {
   })
 
   // Animation frame reference
-  const animationRef = useRef<number>()
+  const animationRef = useRef<number>(0)
   const lastTimeRef = useRef<number>(Date.now())
 
   // For tracking high score
@@ -54,6 +54,7 @@ const CircleGameExample: React.FC = () => {
 
   // For slingshot line
   const slingshotOpacity = useRef(new Animated.Value(0)).current
+  const slingshotColor = COLORS.SLINGSHOT
 
   // Helper to find which circle was touched - defined outside of gesture handler
   const findTouchedCircleIndex = useCallback((x: number, y: number, currentCircles: Circle[]) => {
@@ -502,6 +503,7 @@ const styles = StyleSheet.create({
   },
   instructionsContainer: {
     position: "absolute",
+    opacity: 0.8,
     bottom: 40,
     left: 20,
     right: 20,
@@ -510,7 +512,8 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(75, 75, 75, 0.5)"
+    borderColor: "rgba(75, 75, 75, 0.5)",
+    zIndex: -1
   },
   instructionsText: {
     color: COLORS.INSTRUCTIONS_TEXT,
