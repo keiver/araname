@@ -1,17 +1,6 @@
-import React, {useEffect, useState, useCallback} from "react"
+import React, {useState, useRef, useEffect} from "react"
 import {StyleSheet} from "react-native"
-import {
-  Canvas,
-  Circle,
-  Group,
-  Paint,
-  Rect,
-  Line,
-  Path,
-  RadialGradient,
-  vec,
-  LinearGradient
-} from "@shopify/react-native-skia"
+import {Canvas, Circle, Group, Paint, Rect, Line, Path, RadialGradient, vec} from "@shopify/react-native-skia"
 
 // Circle and CircleState types
 export interface Circle {
@@ -144,50 +133,63 @@ export const CircleRendererSkia: React.FC<CircleRendererProps> = ({
   pulseIntensity = 0,
   progressBarVisible = true
 }) => {
-  // Animation state
+  // Animation state with useState to allow re-renders
   const [outerRotation, setOuterRotation] = useState(0)
   const [innerRotation, setInnerRotation] = useState(0)
   const [glowIntensity, setGlowIntensity] = useState(0.3)
   const [now, setNow] = useState(Date.now())
 
-  // Update animation values
-  const updateAnimation = useCallback(() => {
-    const currentTime = Date.now()
-    setNow(currentTime)
+  // Animation frame tracking
+  const animationRef = useRef<number | null>(null)
+  const isComponentMounted = useRef(true)
 
-    // Update rotations at different speeds (0-360 degrees)
-    const outerRotationValue = ((currentTime % ANIMATION.ROTATION_DURATION) / ANIMATION.ROTATION_DURATION) * 360
-    setOuterRotation(outerRotationValue)
-
-    const innerRotationValue =
-      ((currentTime % ANIMATION.INNER_ROTATION_DURATION) / ANIMATION.INNER_ROTATION_DURATION) * -360
-    setInnerRotation(innerRotationValue)
-
-    // Update glow (pulsing effect)
-    const glowProgress = (currentTime % ANIMATION.GLOW_DURATION) / ANIMATION.GLOW_DURATION
-    const glowValue = 0.3 + Math.sin(glowProgress * Math.PI * 2) * 0.2
-    setGlowIntensity(glowValue)
-  }, [])
-
-  // Setup animation loop
-  useEffect(() => {
-    let animationFrame: number
-
-    const animate = () => {
-      updateAnimation()
-      animationFrame = requestAnimationFrame(animate)
-    }
-
-    animationFrame = requestAnimationFrame(animate)
-
-    return () => {
-      cancelAnimationFrame(animationFrame)
-    }
-  }, [updateAnimation])
-
-  // Select color scheme based on intersection state
+  // Calculate color scheme based on intersection state
   const colors = circleState?.hasIntersections ? COLORS.INTERSECTING : COLORS.NORMAL
   const opacity = circle.opacity ?? 1
+
+  // Update animation
+  useEffect(() => {
+    // Mark component as mounted
+    isComponentMounted.current = true
+
+    // Define the animation function
+    const updateAnimation = () => {
+      if (!isComponentMounted.current) return
+
+      const currentTime = Date.now()
+      setNow(currentTime)
+
+      // Update rotations at different speeds (0-360 degrees)
+      const outerRotationValue = ((currentTime % ANIMATION.ROTATION_DURATION) / ANIMATION.ROTATION_DURATION) * 360
+      setOuterRotation(outerRotationValue)
+
+      const innerRotationValue =
+        ((currentTime % ANIMATION.INNER_ROTATION_DURATION) / ANIMATION.INNER_ROTATION_DURATION) * -360
+      setInnerRotation(innerRotationValue)
+
+      // Update glow (pulsing effect)
+      const glowProgress = (currentTime % ANIMATION.GLOW_DURATION) / ANIMATION.GLOW_DURATION
+      const glowValue = 0.3 + Math.sin(glowProgress * Math.PI * 2) * 0.2
+      setGlowIntensity(glowValue)
+
+      // Continue animation if still mounted
+      if (isComponentMounted.current) {
+        animationRef.current = requestAnimationFrame(updateAnimation)
+      }
+    }
+
+    // Start animation loop
+    animationRef.current = requestAnimationFrame(updateAnimation)
+
+    // Cleanup
+    return () => {
+      isComponentMounted.current = false
+      if (animationRef.current !== null) {
+        cancelAnimationFrame(animationRef.current)
+        animationRef.current = null
+      }
+    }
+  }, []) // Empty dependency array means this effect runs once on mount
 
   // Calculate border opacity with glow effect
   const borderOpacity = Math.min(1, (glowIntensity + pulseIntensity * 0.2) * opacity)

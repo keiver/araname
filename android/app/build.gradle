@@ -86,13 +86,13 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.keiverh.bakingpies'
+    namespace 'dev.keiver.slingship'
     defaultConfig {
-        applicationId 'com.keiverh.bakingpies'
+        applicationId 'dev.keiver.slingship'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.0.0"
+        versionName "1.1.0"
     }
     signingConfigs {
         debug {

@@ -1,19 +1,23 @@
 import React from "react"
 import {SafeAreaView, StatusBar, StyleSheet} from "react-native"
-import CircleGameExample from "./src/Game"
+import {GestureHandlerRootView} from "react-native-gesture-handler"
+import Game from "./src/Game"
+import {COLORS} from "./src/constants"
 
 export default function App() {
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#000" />
-      <CircleGameExample />
-    </SafeAreaView>
+    <GestureHandlerRootView style={styles.container}>
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.BACKGROUND} />
+        <Game />
+      </SafeAreaView>
+    </GestureHandlerRootView>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#000"
+    backgroundColor: COLORS.BACKGROUND
   }
 })

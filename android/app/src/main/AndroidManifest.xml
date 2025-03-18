@@ -24,7 +24,7 @@
         <action android:name="android.intent.action.VIEW"/>
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
-        <data android:scheme="com.keiverh.bakingpies"/>
+        <data android:scheme="dev.keiver.slingship"/>
       </intent-filter>
     </activity>
   </application>

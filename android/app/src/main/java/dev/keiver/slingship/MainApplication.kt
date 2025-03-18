@@ -1,4 +1,4 @@
-package com.keiverh.bakingpies
+package dev.keiver.slingship
 
 import android.app.Application
 import android.content.res.Configuration

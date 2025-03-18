@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "baking-pies",
-    "slug": "baking-pies",
-    "version": "1.0.0",
+    "name": "slingship",
+    "slug": "slingship",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -14,14 +14,14 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.keiverh.bakingpies"
+      "bundleIdentifier": "dev.keiver.slingship"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.keiverh.bakingpies"
+      "package": "dev.keiver.slingship"
     },
     "web": {
       "favicon": "./assets/favicon.png"
