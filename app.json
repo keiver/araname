@@ -14,17 +14,45 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "dev.keiver.slingship"
+      "bundleIdentifier": "dev.keiver.slingship",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to save images and videos."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "dev.keiver.slingship"
+      "package": "dev.keiver.slingship",
+      "permissions": ["INTERNET", "WRITE_EXTERNAL_STORAGE", "READ_EXTERNAL_STORAGE"],
+      "usesCleartextTraffic": true
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-asset",
+      [
+        "expo-screen-orientation",
+        {
+          "initialOrientation": "PORTRAIT"
+        }
+      ],
+      [
+        "expo-file-system",
+        {
+          "filePermissions": true
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow SlingShip to access your photos to save images and videos.",
+          "savePhotosPermission": "Allow SlingShip to save images and videos to your photo library.",
+          "isAccessMediaLocationEnabled": true
+        }
+      ]
+    ]
   }
 }

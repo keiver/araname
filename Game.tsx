@@ -183,7 +183,7 @@ export default function App() {
       const contentLength = htmlContent.length
 
       addDebugLog(`Received HTML content. Length: ${contentLength} characters`, "info")
-      addDebugLog(`First 100 chars: ${htmlContent.replace(/\n/g, "↩")}...`, "info")
+      addDebugLog(`First 100 chars: ${htmlContent.substring(0, 100).replace(/\n/g, "↩")}...`, "info")
 
       // Extract resources
       return extractResources(htmlContent, url)
