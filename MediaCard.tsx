@@ -1,8 +1,19 @@
 import React, {useEffect, useState} from "react"
-import {StyleSheet, View, Text, TouchableOpacity, ActivityIndicator, Image, Dimensions, Platform} from "react-native"
+import {
+  StyleSheet,
+  View,
+  Text,
+  TouchableOpacity,
+  ActivityIndicator,
+  Image,
+  Dimensions,
+  Platform,
+  ImageURISource
+} from "react-native"
 import {Ionicons} from "@expo/vector-icons"
 import {SvgUri} from "react-native-svg"
 import axios from "axios"
+import * as FileSystem from "expo-file-system"
 
 const {width} = Dimensions.get("window")
 const GRID_COLUMNS = 2
@@ -28,23 +39,32 @@ interface MediaCardProps {
 export const MediaCard: React.FC<MediaCardProps> = ({item, downloadState, onDownload, onCancel}) => {
   const [fileSizeInfo, setFileSizeInfo] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [aspectRatio, setAspectRatio] = useState(1)
+  const [imageLoaded, setImageLoaded] = useState(false)
 
   const isDownloading = downloadState?.status === "downloading"
   const isComplete = downloadState?.status === "complete"
   const isError = downloadState?.status === "error"
   const isSaving = downloadState?.status === "saving"
 
-  // Fetch file size information
+  // Fetch file size information and image dimensions
   useEffect(() => {
-    const estimateFileSize = async () => {
+    const getMediaInfo = async () => {
       if (item.estimatedSize) {
         setFileSizeInfo(formatFileSize(item.estimatedSize))
-        return
       }
 
       try {
         setIsLoading(true)
-        const response = await axios.head(item.url, {timeout: 3000})
+
+        // Get file size via HEAD request
+        const response = await axios.head(item.url, {
+          timeout: 3000,
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+          }
+        })
+
         const contentLength = response.headers["content-length"]
 
         if (contentLength) {
@@ -53,15 +73,51 @@ export const MediaCard: React.FC<MediaCardProps> = ({item, downloadState, onDown
         } else {
           setFileSizeInfo("Unknown size")
         }
+
+        // Get image dimensions for aspect ratio if it's an image
+        if (item.type === "image" && item.format !== "svg") {
+          Image.getSize(
+            item.url,
+            (width, height) => {
+              if (width && height) {
+                // Limit aspect ratio to prevent too tall or too wide images
+                const rawAspectRatio = width / height
+                // For portrait images (height > width), we'll limit how tall they can be
+                let adjustedAspectRatio = rawAspectRatio
+
+                if (rawAspectRatio < 0.7) {
+                  // Portrait image - don't let it get too tall
+                  adjustedAspectRatio = 0.7
+                } else if (rawAspectRatio > 2) {
+                  // Very wide image - don't let it get too short
+                  adjustedAspectRatio = 2
+                }
+
+                setAspectRatio(adjustedAspectRatio)
+              }
+              setImageLoaded(true)
+            },
+            () => {
+              // Error fallback to default aspect ratio
+              setAspectRatio(16 / 9)
+              setImageLoaded(true)
+            }
+          )
+        } else {
+          // Default aspect ratio for non-images or SVGs
+          setAspectRatio(16 / 9)
+          setImageLoaded(true)
+        }
       } catch (error) {
         setFileSizeInfo("Size unavailable")
+        setImageLoaded(true)
       } finally {
         setIsLoading(false)
       }
     }
 
-    estimateFileSize()
-  }, [item.url, item.estimatedSize])
+    getMediaInfo()
+  }, [item.url, item.estimatedSize, item.type, item.format])
 
   // Helper to format file size
   const formatFileSize = (bytes: number): string => {
@@ -99,12 +155,24 @@ export const MediaCard: React.FC<MediaCardProps> = ({item, downloadState, onDown
     <View style={styles.gridItem}>
       <View style={styles.mediaCard}>
         {/* Media thumbnail with enhanced shadow */}
-        <View style={styles.thumbnailContainer}>
+        <View
+          style={[
+            styles.thumbnailContainer,
+            {
+              height: imageLoaded ? Math.min(ITEM_WIDTH / aspectRatio, ITEM_WIDTH * 1.2) : ITEM_WIDTH * 0.6
+            }
+          ]}
+        >
           {item.type === "image" ? (
             item.format === "svg" ? (
               <SvgUri width={ITEM_WIDTH} height={ITEM_WIDTH * 0.6} uri={item.url} />
             ) : (
-              <Image source={{uri: item.url}} style={styles.thumbnail} resizeMode="cover" />
+              <Image
+                source={{uri: item.url}}
+                style={styles.thumbnail}
+                resizeMode="cover"
+                onLoad={() => setImageLoaded(true)}
+              />
             )
           ) : (
             <View style={styles.videoThumbnail}>
@@ -215,13 +283,15 @@ const styles = StyleSheet.create({
   },
   thumbnailContainer: {
     width: "100%",
-    height: ITEM_WIDTH * 0.6,
     backgroundColor: "#F0F0F0",
-    position: "relative"
+    position: "relative",
+    minHeight: 100, // Minimum height to avoid empty space during loading
+    maxHeight: ITEM_WIDTH * 1.2 // Maximum height to avoid extremely tall images
   },
   thumbnail: {
     width: "100%",
-    height: "100%"
+    height: "100%",
+    backgroundColor: "#f0f0f0"
   },
   videoThumbnail: {
     width: "100%",

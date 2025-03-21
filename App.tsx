@@ -22,6 +22,7 @@ import {useMediaExtractor} from "./useMediaExtractor"
 // Import our new components
 import {MediaCard} from "./MediaCard"
 import {FilterBar} from "./FilterBar"
+import {MasonryGrid} from "./MasonryGrid"
 
 const {width} = Dimensions.get("window")
 const GRID_COLUMNS = 2
@@ -123,15 +124,19 @@ const App: React.FC = () => {
             />
           </View>
 
-          <FlatList
+          <MasonryGrid
             data={filteredMedia}
-            renderItem={renderItem}
-            keyExtractor={(item, index) => `${item.url}-${index}`}
+            renderItem={(item, index) => (
+              <MediaCard
+                item={item}
+                downloadState={downloadingItems[item.url]}
+                onDownload={handleDownload}
+                onCancel={handleCancelDownload}
+              />
+            )}
             numColumns={GRID_COLUMNS}
-            contentContainerStyle={styles.gridContainer}
-            showsVerticalScrollIndicator={false}
-            windowSize={5}
-            maxToRenderPerBatch={10}
+            spacing={GRID_SPACING}
+            containerStyle={styles.gridContainer}
           />
         </View>
       ) : (
