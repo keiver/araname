@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react"
+import React, {useCallback, useEffect, useState} from "react"
 import {
   StyleSheet,
   View,
@@ -8,18 +8,20 @@ import {
   Image,
   Dimensions,
   Platform,
-  ImageURISource
+  Alert
 } from "react-native"
 import {Ionicons} from "@expo/vector-icons"
 import {SvgUri} from "react-native-svg"
 import axios from "axios"
-import * as FileSystem from "expo-file-system"
+import * as Clipboard from "expo-clipboard"
 
 const {width} = Dimensions.get("window")
 const GRID_COLUMNS = 2
 const GRID_SPACING = 12
 const ITEM_WIDTH = (width - GRID_SPACING * (GRID_COLUMNS + 1)) / GRID_COLUMNS
-
+const MIN_ITEM_HEIGHT = 150
+const MAX_ITEM_HEIGHT = 250
+const DEFAULT_ASPECT_RATIO = 1
 interface MediaCardProps {
   item: {
     url: string
@@ -34,12 +36,13 @@ interface MediaCardProps {
   }
   onDownload: (item: any) => void
   onCancel: (url: string) => void
+  itemWidth: number // New prop
 }
 
-export const MediaCard: React.FC<MediaCardProps> = ({item, downloadState, onDownload, onCancel}) => {
+export const MediaCard: React.FC<MediaCardProps> = ({item, downloadState, onDownload, onCancel, itemWidth}) => {
   const [fileSizeInfo, setFileSizeInfo] = useState<string | null>(null)
+  const [dimensions, setDimensions] = useState<{width: number; height: number} | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [aspectRatio, setAspectRatio] = useState(1)
   const [imageLoaded, setImageLoaded] = useState(false)
 
   const isDownloading = downloadState?.status === "downloading"
@@ -47,13 +50,42 @@ export const MediaCard: React.FC<MediaCardProps> = ({item, downloadState, onDown
   const isError = downloadState?.status === "error"
   const isSaving = downloadState?.status === "saving"
 
-  // Fetch file size information and image dimensions
+  // Handle copy URI action
+  const handleCopyUri = useCallback(async () => {
+    try {
+      await Clipboard.setStringAsync(item.url)
+      Alert.alert("Success", "URL copied to clipboard")
+    } catch (error) {
+      console.error("Failed to copy URL:", error)
+    }
+  }, [item.url])
+
+  // Extract file extension from filename
+  const getFileExtension = (filename: string): string => {
+    const parts = filename.split(".")
+    if (parts.length > 1) {
+      return parts[parts.length - 1].toUpperCase()
+    }
+    return item.format !== "standard" ? item.format.toUpperCase() : ""
+  }
+
+  // Helper to format file size
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`
+  }
+
+  // Format dimensions for display
+  const formatDimensions = (): string => {
+    if (!dimensions) return ""
+    return `${dimensions.width} × ${dimensions.height}`
+  }
+
+  // Fetch media info (file size and dimensions)
   useEffect(() => {
     const getMediaInfo = async () => {
-      if (item.estimatedSize) {
-        setFileSizeInfo(formatFileSize(item.estimatedSize))
-      }
-
       try {
         setIsLoading(true)
 
@@ -74,38 +106,19 @@ export const MediaCard: React.FC<MediaCardProps> = ({item, downloadState, onDown
           setFileSizeInfo("Unknown size")
         }
 
-        // Get image dimensions for aspect ratio if it's an image
+        // Get image dimensions
         if (item.type === "image" && item.format !== "svg") {
           Image.getSize(
             item.url,
             (width, height) => {
-              if (width && height) {
-                // Limit aspect ratio to prevent too tall or too wide images
-                const rawAspectRatio = width / height
-                // For portrait images (height > width), we'll limit how tall they can be
-                let adjustedAspectRatio = rawAspectRatio
-
-                if (rawAspectRatio < 0.7) {
-                  // Portrait image - don't let it get too tall
-                  adjustedAspectRatio = 0.7
-                } else if (rawAspectRatio > 2) {
-                  // Very wide image - don't let it get too short
-                  adjustedAspectRatio = 2
-                }
-
-                setAspectRatio(adjustedAspectRatio)
-              }
+              setDimensions({width, height})
               setImageLoaded(true)
             },
             () => {
-              // Error fallback to default aspect ratio
-              setAspectRatio(16 / 9)
               setImageLoaded(true)
             }
           )
         } else {
-          // Default aspect ratio for non-images or SVGs
-          setAspectRatio(16 / 9)
           setImageLoaded(true)
         }
       } catch (error) {
@@ -117,60 +130,44 @@ export const MediaCard: React.FC<MediaCardProps> = ({item, downloadState, onDown
     }
 
     getMediaInfo()
-  }, [item.url, item.estimatedSize, item.type, item.format])
+  }, [item.url, item.type, item.format])
 
-  // Helper to format file size
-  const formatFileSize = (bytes: number): string => {
-    if (bytes < 1024) return `${bytes} B`
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-    return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`
-  }
+  // Calculate thumbnail height with aspect ratio constraints
+  const calculateThumbnailHeight = useCallback((): number => {
+    if (!dimensions) return itemWidth * DEFAULT_ASPECT_RATIO
 
-  // Determine item quality based on size or format
-  const getQualityIndicator = (): {label: string; color: string} => {
-    if (item.format === "webp" || item.format === "svg") {
-      return {label: "HD", color: "#34C759"}
+    const aspectRatio = dimensions.height / dimensions.width
+    // Constrain aspect ratio between 0.75 (landscape) and 1.5 (portrait)
+    const constrainedRatio = Math.min(Math.max(aspectRatio, 0.75), 1.5)
+    const height = itemWidth * constrainedRatio
+
+    // Apply min/max constraints for uniformity
+    return Math.min(Math.max(height, MIN_ITEM_HEIGHT), MAX_ITEM_HEIGHT)
+  }, [dimensions, itemWidth])
+
+  const progressPercentage = React.useMemo(() => {
+    if (!downloadState || typeof downloadState.progress !== "number") {
+      return "0%"
     }
 
-    if (!item.estimatedSize && !fileSizeInfo) return {label: "", color: ""}
-
-    const size = item.estimatedSize || (fileSizeInfo && !isNaN(parseInt(fileSizeInfo)) ? parseInt(fileSizeInfo) : 0)
-
-    if (item.type === "image") {
-      if (size > 1024 * 1024) return {label: "HD", color: "#34C759"}
-      if (size > 500 * 1024) return {label: "Good", color: "#007AFF"}
-      if (size > 100 * 1024) return {label: "Medium", color: "#FF9500"}
-      return {label: "Low", color: "#8E8E93"}
-    } else {
-      if (size > 20 * 1024 * 1024) return {label: "HD", color: "#34C759"}
-      if (size > 5 * 1024 * 1024) return {label: "Good", color: "#007AFF"}
-      return {label: "Preview", color: "#FF9500"}
-    }
-  }
-
-  const quality = getQualityIndicator()
+    // Ensure progress is between 0 and 1
+    const safeProgress = Math.max(0, Math.min(1, downloadState.progress))
+    return `${Math.round(safeProgress * 100)}%`
+  }, [downloadState])
 
   return (
-    <View style={styles.gridItem}>
+    <View style={[styles.gridItem, {width: itemWidth - GRID_SPACING}]}>
       <View style={styles.mediaCard}>
-        {/* Media thumbnail with enhanced shadow */}
-        <View
-          style={[
-            styles.thumbnailContainer,
-            {
-              height: imageLoaded ? Math.min(ITEM_WIDTH / aspectRatio, ITEM_WIDTH * 1.2) : ITEM_WIDTH * 0.6
-            }
-          ]}
-        >
+        {/* Media thumbnail */}
+        <View style={[styles.thumbnailContainer, {height: calculateThumbnailHeight(), minHeight: MIN_ITEM_HEIGHT}]}>
           {item.type === "image" ? (
             item.format === "svg" ? (
-              <SvgUri width={ITEM_WIDTH} height={ITEM_WIDTH * 0.6} uri={item.url} />
+              <SvgUri width={"100%"} height={calculateThumbnailHeight()} uri={item.url} />
             ) : (
               <Image
                 source={{uri: item.url}}
                 style={styles.thumbnail}
-                resizeMode="cover"
+                resizeMode="contain"
                 onLoad={() => setImageLoaded(true)}
               />
             )
@@ -180,85 +177,74 @@ export const MediaCard: React.FC<MediaCardProps> = ({item, downloadState, onDown
             </View>
           )}
 
-          {/* Format badge */}
-          {item.format !== "standard" && (
-            <View style={styles.formatBadge}>
-              <Text style={styles.formatBadgeText}>{item.format.toUpperCase()}</Text>
-            </View>
-          )}
-
-          {/* Quality indicator */}
-          {quality.label && (
-            <View style={[styles.qualityBadge, {backgroundColor: quality.color}]}>
-              <Text style={styles.qualityBadgeText}>{quality.label}</Text>
-            </View>
-          )}
+          {/* File extension badge */}
+          <View style={styles.formatBadge}>
+            <Text style={styles.formatBadgeText}>{getFileExtension(item.filename)}</Text>
+          </View>
         </View>
 
-        {/* Enhanced Media info */}
-        <View style={styles.mediaInfo}>
+        {/* Media info and actions */}
+        <View style={styles.infoContainer}>
+          {/* Filename and dimensions */}
           <Text style={styles.mediaFilename} numberOfLines={1}>
             {item.filename}
           </Text>
-          <View style={styles.mediaMetaRow}>
-            <Text style={styles.mediaType}>
-              {item.type === "image"
-                ? item.format !== "standard"
-                  ? `${item.format.toUpperCase()}`
-                  : "Image"
-                : "Video"}
-            </Text>
+
+          <View style={styles.detailsRow}>
+            {dimensions && <Text style={styles.dimensionsText}>{formatDimensions()}</Text>}
             {isLoading ? (
-              <ActivityIndicator size="small" color="#999" style={styles.sizeLoader} />
+              <ActivityIndicator size="small" color="#999" />
             ) : (
               <Text style={styles.mediaSize}>{fileSizeInfo}</Text>
             )}
           </View>
-        </View>
 
-        {/* Action buttons with enhanced styling */}
-        <View style={styles.actionContainer}>
+          {/* Action area */}
           {isDownloading ? (
-            <>
+            <View style={styles.downloadingContainer}>
               <View style={styles.progressContainer}>
-                <View style={[styles.progressBar, {width: `${(downloadState.progress * 100).toFixed(0)}%`}]} />
-                <Text style={styles.progressText}>{`${(downloadState.progress * 100).toFixed(0)}%`}</Text>
+                <View style={[styles.progressBar, {width: progressPercentage}]} />
+                <Text style={styles.progressText}>
+                  {downloadState && typeof downloadState.progress === "number"
+                    ? `${Math.max(0, Math.min(100, Math.round(downloadState.progress * 100)))}%`
+                    : "0%"}
+                </Text>
               </View>
-              <TouchableOpacity style={[styles.actionButton, styles.cancelButton]} onPress={() => onCancel(item.url)}>
-                <Ionicons name="close" size={20} color="#FFF" />
+              <TouchableOpacity style={styles.cancelButton} onPress={() => onCancel(item.url)}>
+                <Ionicons name="close-circle" size={22} color="#FF3B30" />
               </TouchableOpacity>
-            </>
+            </View>
           ) : isSaving ? (
             <View style={styles.savingContainer}>
               <ActivityIndicator size="small" color="#007AFF" />
               <Text style={styles.savingText}>Saving...</Text>
             </View>
           ) : (
-            <TouchableOpacity
-              style={[
-                styles.actionButton,
-                isComplete ? styles.completeButton : null,
-                isError ? styles.errorButton : null
-              ]}
-              onPress={() => onDownload(item)}
-            >
-              {isComplete ? (
-                <View style={styles.buttonContent}>
-                  <Ionicons name="checkmark" size={18} color="#FFF" />
-                  <Text style={styles.buttonText}>Saved</Text>
-                </View>
-              ) : isError ? (
-                <View style={styles.buttonContent}>
-                  <Ionicons name="refresh" size={18} color="#FFF" />
-                  <Text style={styles.buttonText}>Retry</Text>
-                </View>
-              ) : (
-                <View style={styles.buttonContent}>
-                  <Ionicons name="download" size={18} color="#FFF" />
-                  <Text style={styles.buttonText}>Download</Text>
-                </View>
-              )}
-            </TouchableOpacity>
+            <View style={styles.actionButtonsContainer}>
+              {/* Download button */}
+              <TouchableOpacity
+                style={[
+                  styles.actionButton,
+                  isComplete ? styles.completeButton : null,
+                  isError ? styles.errorButton : null
+                ]}
+                onPress={() => onDownload(item)}
+                activeOpacity={0.7}
+              >
+                {isComplete ? (
+                  <Ionicons name="checkmark" size={22} color="#FFF" />
+                ) : isError ? (
+                  <Ionicons name="refresh" size={22} color="#FFF" />
+                ) : (
+                  <Ionicons name="cloud-download" size={22} color="#FFF" />
+                )}
+              </TouchableOpacity>
+
+              {/* Copy URL button */}
+              <TouchableOpacity style={styles.actionButton} onPress={handleCopyUri} activeOpacity={0.7}>
+                <Ionicons name="copy" size={22} color="#FFF" />
+              </TouchableOpacity>
+            </View>
           )}
         </View>
       </View>
@@ -268,30 +254,36 @@ export const MediaCard: React.FC<MediaCardProps> = ({item, downloadState, onDown
 
 const styles = StyleSheet.create({
   gridItem: {
-    width: ITEM_WIDTH,
-    margin: GRID_SPACING / 2
+    marginBottom: 16,
+    marginHorizontal: GRID_SPACING / 2,
+    shadowColor: "#000",
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1
   },
   mediaCard: {
-    backgroundColor: "#FFF",
-    borderRadius: 12,
+    backgroundColor: "#ffc914",
+    borderRadius: 23,
     overflow: "hidden",
     shadowColor: "#000",
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: {width: 0, height: 3},
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3
+    shadowRadius: 8,
+    elevation: 0,
+    borderWidth: 0
   },
   thumbnailContainer: {
     width: "100%",
-    backgroundColor: "#F0F0F0",
+    backgroundColor: "#2e282ae6",
     position: "relative",
-    minHeight: 100, // Minimum height to avoid empty space during loading
-    maxHeight: ITEM_WIDTH * 1.2 // Maximum height to avoid extremely tall images
+    overflow: "hidden"
+    // minHeight: 100
   },
   thumbnail: {
     width: "100%",
     height: "100%",
-    backgroundColor: "#f0f0f0"
+    backgroundColor: "#2e282ae6"
   },
   videoThumbnail: {
     width: "100%",
@@ -302,106 +294,58 @@ const styles = StyleSheet.create({
   },
   formatBadge: {
     position: "absolute",
-    top: 8,
-    right: 8,
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 3
+    top: 12,
+    right: 12,
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    color: "#2e282ae6",
+    backgroundColor: "#FFC8148A",
+    shadowColor: "#000",
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    elevation: 3
   },
   formatBadgeText: {
-    color: "#FFF",
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: "bold"
   },
-  qualityBadge: {
-    position: "absolute",
-    top: 8,
-    left: 8,
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 3
-  },
-  qualityBadgeText: {
-    color: "#FFF",
-    fontSize: 10,
-    fontWeight: "bold"
-  },
-  mediaInfo: {
+  infoContainer: {
     padding: 12
   },
   mediaFilename: {
     fontSize: 14,
     fontWeight: "500",
     color: "#333",
-    marginBottom: 4
+    marginBottom: 8
   },
-  mediaMetaRow: {
+  detailsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center"
+    alignItems: "center",
+    marginBottom: 12
   },
-  mediaType: {
+  dimensionsText: {
     fontSize: 12,
-    color: "#666"
+    color: "#666",
+    fontWeight: "500"
   },
   mediaSize: {
     fontSize: 12,
     color: "#666",
     fontWeight: "500"
   },
-  sizeLoader: {
-    marginLeft: 5
-  },
-  actionContainer: {
-    borderTopWidth: 1,
-    borderTopColor: "#EEE",
-    padding: 12
-  },
-  buttonContent: {
+  downloadingContainer: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center"
-  },
-  buttonText: {
-    color: "#FFF",
-    fontWeight: "500",
-    fontSize: 13,
-    marginLeft: 5
-  },
-  actionButton: {
-    height: 40,
-    backgroundColor: "#007AFF",
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#007AFF",
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 2
-  },
-  completeButton: {
-    backgroundColor: "#34C759",
-    shadowColor: "#34C759"
-  },
-  errorButton: {
-    backgroundColor: "#FF3B30",
-    shadowColor: "#FF3B30"
-  },
-  cancelButton: {
-    backgroundColor: "#8E8E93",
-    position: "absolute",
-    right: 0,
-    top: 0,
-    width: 36,
-    height: 36,
-    borderRadius: 18
+    marginTop: 4
   },
   progressContainer: {
-    height: 40,
+    flex: 1,
+    height: 36,
     backgroundColor: "#F0F0F0",
-    borderRadius: 20,
+    borderRadius: 18,
     overflow: "hidden",
     position: "relative"
   },
@@ -417,21 +361,61 @@ const styles = StyleSheet.create({
     bottom: 0,
     textAlign: "center",
     textAlignVertical: "center",
-    color: "#333",
+    color: "#FFF",
     fontSize: 13,
     fontWeight: "600",
-    paddingTop: Platform.OS === "android" ? 10 : 12
+    paddingTop: Platform.OS === "android" ? 8 : 10
+  },
+  cancelButton: {
+    paddingLeft: 10
   },
   savingContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    height: 40
+    height: 36,
+    marginTop: 4
   },
   savingText: {
     marginLeft: 8,
     color: "#007AFF",
     fontSize: 13,
     fontWeight: "500"
+  },
+  actionButtonsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 8,
+    paddingHorizontal: 18
+  },
+  actionButton: {
+    height: 44,
+    width: 44,
+    backgroundColor: "#E4582E9A",
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1
+  },
+  completeButton: {
+    backgroundColor: "#34C759"
+  },
+  errorButton: {
+    backgroundColor: "#FF3B30"
+  },
+  buttonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  buttonText: {
+    color: "#FFF",
+    fontWeight: "600",
+    fontSize: 15,
+    marginLeft: 8
   }
 })

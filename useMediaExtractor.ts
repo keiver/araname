@@ -27,6 +27,8 @@ export const useMediaExtractor = () => {
   const [downloadingItems, setDownloadingItems] = useState<DownloadingItems>({})
   const [permissionResponse, requestPermission] = MediaLibrary.usePermissions()
 
+  const extractionController = useRef<AbortController | null>(null)
+
   const uniqueUrls = useRef(new Set<string>())
   const abortControllersRef = useRef<Record<string, AbortController>>({})
 
@@ -88,11 +90,21 @@ export const useMediaExtractor = () => {
   }, [])
 
   // Extract media resources from a URL
+  // Key optimizations for the extractResources function in useMediaExtractor.ts
+
   const extractResources = useCallback(async (): Promise<void> => {
     if (!validateUrl(url)) {
       Alert.alert("Error", "Please enter a valid URL")
       return
     }
+
+    // Cancel previous extraction if running
+    if (extractionController.current) {
+      extractionController.current.abort()
+    }
+
+    // Create new controller
+    extractionController.current = new AbortController()
 
     try {
       setLoading(true)
@@ -102,9 +114,10 @@ export const useMediaExtractor = () => {
 
       const formattedUrl = formatUrl(url)
 
-      // Fetch with timeout and retry
+      // Fetch HTML with timeout
       const response = await axios.get(formattedUrl, {
         timeout: 15000,
+        signal: extractionController.current.signal,
         headers: {
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         }
@@ -114,110 +127,98 @@ export const useMediaExtractor = () => {
       const $ = cheerio.load(html)
       const mediaItems: MediaItem[] = []
 
-      // Process images
-      $("img").each((_, element) => {
-        const src = $(element).attr("src")
-        if (!src) return
+      // Create a single efficient media extractor function
+      const extractMedia = (
+        selector: string,
+        getUrl: ($el: cheerio.Cheerio) => string | undefined,
+        type: "image" | "video"
+      ): void => {
+        $(selector).each((_, element) => {
+          const $el = $(element)
+          const sourceUrl = getUrl($el)
 
-        try {
-          const fullUrl = src.startsWith("http") ? src : new URL(src, formattedUrl).href
-          if (uniqueUrls.current.has(fullUrl)) return
-          uniqueUrls.current.add(fullUrl)
+          if (!sourceUrl) return
 
-          const filename = getFilename(fullUrl, "image")
-          const format = getFormatFromFilename(filename)
+          try {
+            const fullUrl = sourceUrl.startsWith("http") ? sourceUrl : new URL(sourceUrl, formattedUrl).href
 
-          mediaItems.push({
-            url: fullUrl,
-            type: "image",
-            filename,
-            format
+            // Skip if already processed
+            if (uniqueUrls.current.has(fullUrl)) return
+            uniqueUrls.current.add(fullUrl)
+
+            const filename = getFilename(fullUrl, type)
+
+            mediaItems.push({
+              url: fullUrl,
+              type,
+              filename,
+              format: type === "image" ? getFormatFromFilename(filename) : "standard"
+            })
+          } catch (err) {
+            // Silently skip problematic URLs
+          }
+        })
+      }
+
+      // Process in batches to avoid UI freezing - extract all media types at once
+      await new Promise<void>(resolve => {
+        setTimeout(() => {
+          // Images - direct src
+          extractMedia("img", $el => $el.attr("src"), "image")
+
+          // Video sources
+          extractMedia("video source", $el => $el.attr("src"), "video")
+
+          // Video poster images
+          extractMedia("video", $el => $el.attr("poster"), "image")
+
+          // Background images in style attributes
+          $("[style*='background']").each((_, element) => {
+            const style = $(element).attr("style")
+            if (!style) return
+
+            try {
+              const urlMatch = style.match(/url\(['"]?([^'"()]+)['"]?\)/i)
+              if (!urlMatch?.[1]) return
+
+              const bgUrl = urlMatch[1]
+              const fullUrl = bgUrl.startsWith("http") ? bgUrl : new URL(bgUrl, formattedUrl).href
+
+              if (uniqueUrls.current.has(fullUrl)) return
+              uniqueUrls.current.add(fullUrl)
+
+              const filename = getFilename(fullUrl, "image")
+
+              mediaItems.push({
+                url: fullUrl,
+                type: "image",
+                filename,
+                format: getFormatFromFilename(filename)
+              })
+            } catch (err) {
+              // Silently skip problematic URLs
+            }
           })
-        } catch (err) {
-          console.warn("Error processing image:", err)
-        }
+
+          resolve()
+        }, 0)
       })
 
-      // Process videos
-      $("video source").each((_, element) => {
-        const src = $(element).attr("src")
-        if (!src) return
-
-        try {
-          const fullUrl = src.startsWith("http") ? src : new URL(src, formattedUrl).href
-          if (uniqueUrls.current.has(fullUrl)) return
-          uniqueUrls.current.add(fullUrl)
-
-          mediaItems.push({
-            url: fullUrl,
-            type: "video",
-            filename: getFilename(fullUrl, "video"),
-            format: "standard"
-          })
-        } catch (err) {
-          console.warn("Error processing video:", err)
-        }
-      })
-
-      // Process video poster images
-      $("video").each((_, element) => {
-        const poster = $(element).attr("poster")
-        if (!poster) return
-
-        try {
-          const fullUrl = poster.startsWith("http") ? poster : new URL(poster, formattedUrl).href
-          if (uniqueUrls.current.has(fullUrl)) return
-          uniqueUrls.current.add(fullUrl)
-
-          const filename = getFilename(fullUrl, "image")
-
-          mediaItems.push({
-            url: fullUrl,
-            type: "image",
-            filename,
-            format: getFormatFromFilename(filename)
-          })
-        } catch (err) {
-          console.warn("Error processing poster:", err)
-        }
-      })
-
-      // Process background images
-      $("[style*='background']").each((_, element) => {
-        const style = $(element).attr("style")
-        if (!style) return
-
-        try {
-          const urlMatch = style.match(/url\(['"]?([^'"()]+)['"]?\)/i)
-          if (!urlMatch?.[1]) return
-
-          const bgUrl = urlMatch[1]
-          const fullUrl = bgUrl.startsWith("http") ? bgUrl : new URL(bgUrl, formattedUrl).href
-          if (uniqueUrls.current.has(fullUrl)) return
-          uniqueUrls.current.add(fullUrl)
-
-          const filename = getFilename(fullUrl, "image")
-
-          mediaItems.push({
-            url: fullUrl,
-            type: "image",
-            filename,
-            format: getFormatFromFilename(filename)
-          })
-        } catch (err) {
-          console.warn("Error processing background:", err)
-        }
-      })
-
+      // Update UI after extraction completes
       if (mediaItems.length === 0) {
         Alert.alert("No Media Found", "No media was found on this page.")
       } else {
         setMedia(mediaItems)
       }
     } catch (error) {
-      Alert.alert("Error", `Failed to extract resources: ${(error as Error).message || "Unknown error"}`)
+      if (axios.isCancel(error)) {
+        console.log("Request cancelled")
+      } else {
+        Alert.alert("Error", `Failed to extract resources: ${(error as Error).message || "Unknown error"}`)
+      }
     } finally {
       setLoading(false)
+      extractionController.current = null
     }
   }, [url, validateUrl, formatUrl, cancelAllDownloads])
 
