@@ -16,7 +16,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "dev.keiver.slingship",
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to save images and videos."
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to save images and videos.",
+        "NSPhotoLibraryAddUsageDescription": "This app needs permission to save downloaded media to your photo library."
       }
     },
     "android": {
