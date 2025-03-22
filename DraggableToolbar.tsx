@@ -1,4 +1,4 @@
-import React, {useCallback, useState} from "react"
+import React, {useCallback, useState, useEffect} from "react"
 import {StyleSheet, Dimensions, View, TouchableOpacity, Platform, Text} from "react-native"
 import {BlurView} from "expo-blur"
 import {PanGestureHandler} from "react-native-gesture-handler"
@@ -16,7 +16,8 @@ import Animated, {
 import Right from "./assets/right.svg"
 import Left from "./assets/left.svg"
 
-const {width: SCREEN_WIDTH, height: SCREEN_HEIGHT} = Dimensions.get("window")
+// Initial dimensions - will be updated when orientation changes
+const initialDimensions = Dimensions.get("window")
 const TOOLBAR_HEIGHT = 140
 const VISIBLE_PORTION = 26
 const BOTTOM_AD_BANNER_HEIGHT = 50
@@ -41,17 +42,49 @@ type GestureContext = {
 
 const AnimatedBlurView = Animated.createAnimatedComponent(BlurView)
 
-export function DraggableToolbar({
-  children,
-  onPositionChange,
-  initialPosition = SCREEN_HEIGHT - TOOLBAR_HEIGHT
-}: DraggableToolbarProps) {
-  const minOffset = 0
-  const maxOffset = SCREEN_HEIGHT - TOOLBAR_HEIGHT
+export function DraggableToolbar({children, onPositionChange, initialPosition}: DraggableToolbarProps) {
+  // State to track current screen dimensions
+  const [dimensions, setDimensions] = useState({
+    width: initialDimensions.width,
+    height: initialDimensions.height
+  })
 
-  const translateY = useSharedValue(initialPosition)
+  // Use current dimensions to calculate max offset and initial position
+  const minOffset = 0
+  const maxOffset = dimensions.height - TOOLBAR_HEIGHT
+
+  // Calculate default initialPosition based on current dimensions if not provided
+  const defaultInitialPosition = dimensions.height - TOOLBAR_HEIGHT
+
+  const translateY = useSharedValue(initialPosition ?? defaultInitialPosition)
   const translateX = useSharedValue(0)
   const [isCollapsed, setIsCollapsed] = useState(false)
+
+  // Listen for dimension changes (orientation changes)
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener("change", ({window}) => {
+      const {width, height} = window
+      setDimensions({width, height})
+
+      // Adjust toolbar position if it would be off-screen after rotation
+      if (translateY.value > height - TOOLBAR_HEIGHT) {
+        translateY.value = withTiming(height - TOOLBAR_HEIGHT, {
+          duration: 300,
+          easing: Easing.inOut(Easing.ease)
+        })
+      }
+
+      // Handle horizontal position adjustment if collapsed
+      if (isCollapsed && translateX.value > 0) {
+        translateX.value = withTiming(width - VISIBLE_PORTION, {
+          duration: 300,
+          easing: Easing.inOut(Easing.ease)
+        })
+      }
+    })
+
+    return () => subscription.remove()
+  }, [isCollapsed])
 
   useAnimatedReaction(
     () => translateX.value,
@@ -61,11 +94,11 @@ export function DraggableToolbar({
   )
 
   const handleCollapse = useCallback(() => {
-    translateX.value = withTiming(SCREEN_WIDTH - VISIBLE_PORTION, {
+    translateX.value = withTiming(dimensions.width - VISIBLE_PORTION, {
       duration: 300,
       easing: Easing.inOut(Easing.ease)
     })
-  }, [])
+  }, [dimensions.width])
 
   const handleExpand = useCallback(() => {
     if (translateX.value > 0) {
@@ -101,9 +134,9 @@ export function DraggableToolbar({
         if (context.startX === 0) {
           // Panel is expanded, handle collapsing
           const newX = Math.max(0, event.translationX)
-          if (newX > SCREEN_WIDTH / 4) {
+          if (newX > dimensions.width / 4) {
             // If swiped more than 1/4 of screen width, snap to collapsed state
-            translateX.value = withTiming(SCREEN_WIDTH - VISIBLE_PORTION, {
+            translateX.value = withTiming(dimensions.width - VISIBLE_PORTION, {
               duration: 300,
               easing: Easing.inOut(Easing.ease)
             })
@@ -114,7 +147,7 @@ export function DraggableToolbar({
         } else {
           // Panel is collapsed, handle expanding
           const newX = Math.max(0, context.startX + event.translationX)
-          if (newX < SCREEN_WIDTH - VISIBLE_PORTION - SCREEN_WIDTH / 4) {
+          if (newX < dimensions.width - VISIBLE_PORTION - dimensions.width / 4) {
             // If swiped more than 1/4 of screen width toward left, snap to expanded state
             translateX.value = withTiming(0, {
               duration: 300,
@@ -122,7 +155,7 @@ export function DraggableToolbar({
             })
           } else {
             // Otherwise, follow finger but don't go past fully expanded
-            translateX.value = Math.min(SCREEN_WIDTH - VISIBLE_PORTION, newX)
+            translateX.value = Math.min(dimensions.width - VISIBLE_PORTION, newX)
           }
         }
       }
@@ -130,9 +163,9 @@ export function DraggableToolbar({
     onEnd: (event, context) => {
       if (context.isHorizontalSwipe) {
         // Horizontal gesture ended - snap to expanded or collapsed state
-        if (translateX.value > (SCREEN_WIDTH - VISIBLE_PORTION) / 2) {
+        if (translateX.value > (dimensions.width - VISIBLE_PORTION) / 2) {
           // Collapse if dragged more than halfway
-          translateX.value = withTiming(SCREEN_WIDTH - VISIBLE_PORTION, {
+          translateX.value = withTiming(dimensions.width - VISIBLE_PORTION, {
             duration: 300,
             easing: Easing.inOut(Easing.ease)
           })
@@ -167,8 +200,8 @@ export function DraggableToolbar({
 
   return (
     <View style={StyleSheet.absoluteFill}>
-      <Animated.View style={[styles.container, animatedStyle]}>
-        <View style={styles.handleContainer}>
+      <Animated.View style={[styles.container, animatedStyle, {width: dimensions.width}]}>
+        <View style={[styles.handleContainer, {width: dimensions.width}]}>
           <View style={styles.handleIndicator} />
         </View>
         <TouchableOpacity
@@ -214,7 +247,6 @@ export function DraggableToolbar({
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    width: SCREEN_WIDTH,
     height: TOOLBAR_HEIGHT,
     zIndex: 1,
     shadowColor: "#000",
@@ -274,8 +306,7 @@ const styles = StyleSheet.create({
     top: 14,
     alignItems: "center",
     zIndex: 1,
-    gap: 0,
-    width: Dimensions.get("window").width
+    gap: 0
   },
   handleIndicator: {
     width: 36,
