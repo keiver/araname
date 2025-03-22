@@ -1,4 +1,4 @@
-package dev.keiver.slingship
+package dev.keiver.araname
 
 import android.os.Build
 import android.os.Bundle

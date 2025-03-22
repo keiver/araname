@@ -515,14 +515,14 @@ export default function App() {
       const asset = await MediaLibrary.createAssetAsync(fileUri)
 
       // Get or create album
-      const album = await MediaLibrary.getAlbumAsync("SlingShip")
+      const album = await MediaLibrary.getAlbumAsync("araname")
       if (album) {
         await MediaLibrary.addAssetsToAlbumAsync([asset], album, false)
       } else {
-        await MediaLibrary.createAlbumAsync("SlingShip", asset, false)
+        await MediaLibrary.createAlbumAsync("araname", asset, false)
       }
 
-      Alert.alert("Success", `${resource.filename} saved to your gallery in the SlingShip album`)
+      Alert.alert("Success", `${resource.filename} saved to your gallery in the araname album`)
     } catch (err) {
       console.error("Error saving to gallery:", err)
 
@@ -604,7 +604,7 @@ export default function App() {
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>SlingShip Resource Crawler</Text>
+        <Text style={styles.headerTitle}>Araname Resource Crawler</Text>
         {hasCrawled && (
           <TouchableOpacity style={styles.resetButton} onPress={handleReset}>
             <Text style={styles.resetButtonText}>New Search</Text>

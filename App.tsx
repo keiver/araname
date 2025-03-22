@@ -33,6 +33,11 @@ import {MediaCard} from "./MediaCard"
 import {FilterBar} from "./FilterBar"
 import {useRecentUrls} from "./useRecentUrls"
 import {useOrientation} from "./useOrientation"
+import Actions from "./Actions"
+import DraggableToolbar from "./DraggableToolbar"
+import {GestureHandlerRootView} from "react-native-gesture-handler"
+
+const versionFile = require("./app.json")
 
 const App: React.FC = () => {
   const {url, setUrl, loading, media, downloadingItems, extractResources, downloadMedia, cancelDownload} =
@@ -178,112 +183,152 @@ const App: React.FC = () => {
     [handleRecentUrlSelect]
   )
 
+  const version_string = `v${versionFile.expo.version}` || "1"
+
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <GestureHandlerRootView style={{flex: 1, backgroundColor: "transparent"}}>
+      <SafeAreaView style={styles.container}>
+        <StatusBar style="dark" />
 
-      {/* Title */}
-      <Text style={styles.title}>Media Downloader</Text>
-
-      {/* Search input */}
-      <View style={styles.searchContainer}>
-        <View style={styles.inputWrapper}>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter website URL"
-            value={url}
-            onChangeText={setUrl}
-            autoCapitalize="none"
-            autoCorrect={false}
-            returnKeyType="search"
-            onSubmitEditing={handleSearch}
-          />
-
-          {recentUrls.length > 0 && (
-            <TouchableOpacity style={styles.historyButton} onPress={() => setShowRecentUrls(prevState => !prevState)}>
-              <Ionicons name="time-outline" size={22} color="#666" />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        <TouchableOpacity style={styles.searchButton} onPress={handleSearch} disabled={loading}>
-          {loading ? (
-            <ActivityIndicator color="#FFF" size="small" />
-          ) : (
-            <Ionicons name="search" size={22} color="#FFF" />
-          )}
-        </TouchableOpacity>
-      </View>
-
-      {/* Recent URLs dropdown with overlay for tapping outside */}
-      {showRecentUrls && (
-        <>
-          <TouchableWithoutFeedback onPress={handleOutsideTouch}>
-            <View style={styles.dropdownOverlay} />
-          </TouchableWithoutFeedback>
-
-          <View ref={dropdownRef} style={styles.recentUrlsContainer}>
-            <FlatList
-              data={recentUrls}
-              keyExtractor={item => item.url}
-              renderItem={renderRecentUrlItem}
-              initialNumToRender={10}
-              maxToRenderPerBatch={5}
-              windowSize={5}
-            />
-          </View>
-        </>
-      )}
-
-      {/* Results grid */}
-      {uiState.hasResults ? (
-        <View style={styles.resultsContainer}>
-          <View style={styles.resultsHeader}>
-            <FilterBar
-              currentFilter={filterType}
-              onFilterChange={handleFilterChange}
-              filters={[
-                {id: "all", label: "All"},
-                {id: "image", label: "Images"},
-                {id: "video", label: "Videos"},
-                {id: "svg", label: "SVG"},
-                {id: "webp", label: "WebP"},
-                {id: "gif", label: "GIFs"}
-              ]}
-              resultCount={uiState.resultCount}
-            />
-          </View>
-
-          <FlatList
-            data={filteredMedia}
-            renderItem={renderItem}
-            keyExtractor={keyExtractor}
-            numColumns={GRID_COLUMNS}
-            contentContainerStyle={styles.gridContainer}
-            showsVerticalScrollIndicator={false}
-            // Performance optimization props
-            removeClippedSubviews={true}
-            maxToRenderPerBatch={4}
-            updateCellsBatchingPeriod={50}
-            windowSize={9}
-            initialNumToRender={8}
-            // Additional props for smooth filtering
-            disableVirtualization={false}
-            extraData={filterType} // Ensures re-render when filter changes
-            // Maintain position during updates
-            maintainVisibleContentPosition={{
-              minIndexForVisible: 0
+        {/* Title */}
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "center",
+            alignItems: "flex-start",
+            margin: 4
+          }}
+        >
+          <Text
+            style={[
+              styles.modalTitle,
+              {
+                position: "relative",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                textAlign: "center",
+                margin: 4
+              }
+            ]}
+          >
+            araname - web media extractor
+          </Text>
+          <Text
+            style={{
+              marginVertical: 21,
+              fontSize: 12
+              // fontWeight: "600"
             }}
-            key={`grid-${GRID_COLUMNS}`} // Force re-render when columns change
-          />
+          >
+            {" "}
+            {version_string}
+          </Text>
         </View>
-      ) : (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="images-outline" size={80} color="#DDD" />
-          <Text style={styles.emptyText}>Enter a website URL to extract media</Text>
+
+        {/* Search input */}
+        <View style={styles.searchContainer}>
+          <View style={styles.inputWrapper}>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter website URL"
+              value={url}
+              onChangeText={setUrl}
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="search"
+              onSubmitEditing={handleSearch}
+            />
+
+            {recentUrls.length > 0 && (
+              <TouchableOpacity style={styles.historyButton} onPress={() => setShowRecentUrls(prevState => !prevState)}>
+                <Ionicons name="time-outline" size={22} color="#666" />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <TouchableOpacity style={styles.searchButton} onPress={handleSearch} disabled={loading}>
+            {loading ? (
+              <ActivityIndicator color="#FFC8148A" size="small" />
+            ) : (
+              <Ionicons name="search" size={22} color="#FFC814FF" />
+            )}
+          </TouchableOpacity>
         </View>
-      )}
-    </SafeAreaView>
+
+        {/* Recent URLs dropdown with overlay for tapping outside */}
+        {showRecentUrls && (
+          <>
+            <TouchableWithoutFeedback onPress={handleOutsideTouch}>
+              <View style={styles.dropdownOverlay} />
+            </TouchableWithoutFeedback>
+
+            <View ref={dropdownRef} style={styles.recentUrlsContainer}>
+              <FlatList
+                data={recentUrls}
+                keyExtractor={item => item.url}
+                renderItem={renderRecentUrlItem}
+                initialNumToRender={10}
+                maxToRenderPerBatch={5}
+                windowSize={5}
+              />
+            </View>
+          </>
+        )}
+
+        {/* Results grid */}
+        {uiState.hasResults ? (
+          <View style={styles.resultsContainer}>
+            <View style={styles.resultsHeader}>
+              <FilterBar
+                currentFilter={filterType}
+                onFilterChange={handleFilterChange}
+                filters={[
+                  {id: "all", label: "All"},
+                  {id: "image", label: "Images"},
+                  {id: "video", label: "Videos"},
+                  {id: "svg", label: "SVG"},
+                  {id: "webp", label: "WebP"},
+                  {id: "gif", label: "GIFs"}
+                ]}
+                resultCount={uiState.resultCount}
+              />
+            </View>
+
+            <FlatList
+              data={filteredMedia}
+              renderItem={renderItem}
+              keyExtractor={keyExtractor}
+              numColumns={GRID_COLUMNS}
+              contentContainerStyle={styles.gridContainer}
+              showsVerticalScrollIndicator={false}
+              // Performance optimization props
+              removeClippedSubviews={true}
+              maxToRenderPerBatch={4}
+              updateCellsBatchingPeriod={50}
+              windowSize={9}
+              initialNumToRender={8}
+              // Additional props for smooth filtering
+              disableVirtualization={false}
+              extraData={filterType} // Ensures re-render when filter changes
+              // Maintain position during updates
+              maintainVisibleContentPosition={{
+                minIndexForVisible: 0
+              }}
+              key={`grid-${GRID_COLUMNS}`} // Force re-render when columns change
+            />
+          </View>
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="images-outline" size={80} color="#DDD" />
+            <Text style={styles.emptyText}>Enter a website URL to extract media</Text>
+          </View>
+        )}
+        <DraggableToolbar>
+          <Actions />
+        </DraggableToolbar>
+      </SafeAreaView>
+    </GestureHandlerRootView>
   )
 }
 
@@ -292,6 +337,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fab1a0",
     paddingTop: Platform.OS === "android" ? RNStatusBar.currentHeight : 0
+  },
+  modalTitle: {
+    // fontSize: 12,
+    fontWeight: "800",
+    color: "#122441FF",
+    marginVertical: 24,
+    textAlign: "center"
+    // letterSpacing: 0.5
   },
   title: {
     fontSize: 18,
@@ -337,24 +390,22 @@ const styles = StyleSheet.create({
     color: "#333"
   },
   searchButton: {
-    width: 50,
-    height: 50,
-    backgroundColor: "#007AFF",
-    borderRadius: 25,
-    marginLeft: 12,
+    width: 66,
+    height: 66,
+    borderRadius: 3318,
+    backgroundColor: "#2e282ae6",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 3
+    borderWidth: 2,
+    borderColor: "#FFC312",
+    color: "#FFC8148A",
+    marginLeft: 10
   },
   historyButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#F0F0F0",
+    backgroundColor: "#FFC4125C",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 4
@@ -370,7 +421,7 @@ const styles = StyleSheet.create({
   },
   gridContainer: {
     paddingTop: 8,
-    paddingBottom: 20
+    paddingBottom: 120
     // paddingHorizontal: 11
   },
   emptyContainer: {

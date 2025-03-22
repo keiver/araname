@@ -1,20 +1,19 @@
 {
   "expo": {
-    "name": "slingship",
-    "slug": "slingship",
+    "name": "araname",
+    "slug": "araname",
     "version": "1.1.0",
-    "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#fab1a0"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "dev.keiver.slingship",
+      "bundleIdentifier": "dev.keiver.araname",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to save images and videos.",
         "NSPhotoLibraryAddUsageDescription": "This app needs permission to save downloaded media to your photo library."
@@ -23,14 +22,11 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#fab1a0"
       },
-      "package": "dev.keiver.slingship",
+      "package": "dev.keiver.araname",
       "permissions": ["INTERNET", "WRITE_EXTERNAL_STORAGE", "READ_EXTERNAL_STORAGE"],
       "usesCleartextTraffic": true
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-asset",
@@ -49,8 +45,8 @@
       [
         "expo-media-library",
         {
-          "photosPermission": "Allow SlingShip to access your photos to save images and videos.",
-          "savePhotosPermission": "Allow SlingShip to save images and videos to your photo library.",
+          "photosPermission": "Allow araname to access your photos to save images and videos.",
+          "savePhotosPermission": "Allow araname to save images and videos to your photo library.",
           "isAccessMediaLocationEnabled": true
         }
       ]

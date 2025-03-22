@@ -86,9 +86,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'dev.keiver.slingship'
+    namespace 'dev.keiver.araname'
     defaultConfig {
-        applicationId 'dev.keiver.slingship'
+        applicationId 'dev.keiver.araname'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

@@ -1,4 +1,4 @@
-package dev.keiver.slingship
+package dev.keiver.araname
 
 import android.app.Application
 import android.content.res.Configuration

@@ -44,6 +44,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({item, downloadState, onDown
   const [dimensions, setDimensions] = useState<{width: number; height: number} | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
+  const [copyMessage, setCopyMessage] = useState(false)
 
   const isDownloading = downloadState?.status === "downloading"
   const isComplete = downloadState?.status === "complete"
@@ -52,13 +53,18 @@ export const MediaCard: React.FC<MediaCardProps> = ({item, downloadState, onDown
 
   // Handle copy URI action
   const handleCopyUri = useCallback(async () => {
+    setCopyMessage(true)
     try {
       await Clipboard.setStringAsync(item.url)
-      Alert.alert("Success", "URL copied to clipboard")
+
+      setTimeout(() => {
+        setCopyMessage(false)
+      }, 2000) // Hide message after 2 seconds
     } catch (error) {
       console.error("Failed to copy URL:", error)
+      setCopyMessage(false)
     }
-  }, [item.url])
+  }, [item.url, setCopyMessage])
 
   // Extract file extension from filename
   const getFileExtension = (filename: string): string => {
@@ -159,7 +165,12 @@ export const MediaCard: React.FC<MediaCardProps> = ({item, downloadState, onDown
     <View style={[styles.gridItem, {width: itemWidth - GRID_SPACING}]}>
       <View style={styles.mediaCard}>
         {/* Media thumbnail */}
-        <View style={[styles.thumbnailContainer, {height: calculateThumbnailHeight(), minHeight: MIN_ITEM_HEIGHT}]}>
+        <TouchableOpacity
+          // style={styles.actionButton}
+          onPress={handleCopyUri}
+          activeOpacity={0.7}
+          style={[styles.thumbnailContainer, {height: calculateThumbnailHeight(), minHeight: MIN_ITEM_HEIGHT}]}
+        >
           {item.type === "image" ? (
             item.format === "svg" ? (
               <SvgUri width={"100%"} height={calculateThumbnailHeight()} uri={item.url} />
@@ -181,7 +192,12 @@ export const MediaCard: React.FC<MediaCardProps> = ({item, downloadState, onDown
           <View style={styles.formatBadge}>
             <Text style={styles.formatBadgeText}>{getFileExtension(item.filename)}</Text>
           </View>
-        </View>
+          {copyMessage && (
+            <View style={styles.formatBadge}>
+              <Text style={styles.formatBadgeText}>URL copied to clipboard</Text>
+            </View>
+          )}
+        </TouchableOpacity>
 
         {/* Media info and actions */}
         <View style={styles.infoContainer}>
@@ -232,18 +248,19 @@ export const MediaCard: React.FC<MediaCardProps> = ({item, downloadState, onDown
                 activeOpacity={0.7}
               >
                 {isComplete ? (
-                  <Ionicons name="checkmark" size={22} color="#FFF" />
+                  <Ionicons name="checkmark" size={22} color="#2e282ae6" />
                 ) : isError ? (
-                  <Ionicons name="refresh" size={22} color="#FFF" />
+                  <Ionicons name="refresh" size={22} color="#2e282ae6" />
                 ) : (
-                  <Ionicons name="cloud-download" size={22} color="#FFF" />
+                  <Ionicons name="cloud-download" size={22} color="#2e282ae6" />
                 )}
+                <Text style={styles.buttonText}>{isComplete ? " Downloaded" : " Download"}</Text>
               </TouchableOpacity>
 
               {/* Copy URL button */}
-              <TouchableOpacity style={styles.actionButton} onPress={handleCopyUri} activeOpacity={0.7}>
+              {/* <TouchableOpacity style={styles.actionButton} onPress={handleCopyUri} activeOpacity={0.7}>
                 <Ionicons name="copy" size={22} color="#FFF" />
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
           )}
         </View>
@@ -263,7 +280,7 @@ const styles = StyleSheet.create({
     elevation: 1
   },
   mediaCard: {
-    backgroundColor: "#ffc914",
+    backgroundColor: "#FFFFFFDF",
     borderRadius: 23,
     overflow: "hidden",
     shadowColor: "#000",
@@ -275,6 +292,7 @@ const styles = StyleSheet.create({
   },
   thumbnailContainer: {
     width: "100%",
+    padding: 10,
     backgroundColor: "#2e282ae6",
     position: "relative",
     overflow: "hidden"
@@ -283,12 +301,12 @@ const styles = StyleSheet.create({
   thumbnail: {
     width: "100%",
     height: "100%",
-    backgroundColor: "#2e282ae6"
+    backgroundColor: "transparent"
   },
   videoThumbnail: {
     width: "100%",
     height: "100%",
-    backgroundColor: "rgba(0, 122, 255, 0.1)",
+    backgroundColor: "rgba(0, 122, 255, 0)",
     justifyContent: "center",
     alignItems: "center"
   },
@@ -300,7 +318,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     color: "#2e282ae6",
-    backgroundColor: "#FFC8148A",
+    backgroundColor: "#FFC814FF",
     shadowColor: "#000",
     shadowOffset: {width: 0, height: 1},
     shadowOpacity: 0.3,
@@ -317,7 +335,7 @@ const styles = StyleSheet.create({
   mediaFilename: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#333",
+    color: "#000000FF",
     marginBottom: 8
   },
   detailsRow: {
@@ -328,12 +346,12 @@ const styles = StyleSheet.create({
   },
   dimensionsText: {
     fontSize: 12,
-    color: "#666",
+    color: "#171717FF",
     fontWeight: "500"
   },
   mediaSize: {
     fontSize: 12,
-    color: "#666",
+    color: "#171717FF",
     fontWeight: "500"
   },
   downloadingContainer: {
@@ -344,7 +362,7 @@ const styles = StyleSheet.create({
   progressContainer: {
     flex: 1,
     height: 36,
-    backgroundColor: "#F0F0F0",
+    backgroundColor: "#1F1F1F37",
     borderRadius: 18,
     overflow: "hidden",
     position: "relative"
@@ -384,25 +402,28 @@ const styles = StyleSheet.create({
   },
   actionButtonsContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
     marginTop: 8,
-    paddingHorizontal: 18
+    paddingHorizontal: 1
   },
   actionButton: {
-    height: 44,
-    width: 44,
-    backgroundColor: "#E4582E9A",
-    borderRadius: 22,
+    height: 34,
+    width: "100%",
+    minWidth: 100,
+    maxWidth: 330,
+    backgroundColor: "#d1d8e0",
+    borderRadius: 122,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: {width: 0, height: 1},
     shadowOpacity: 0.05,
     shadowRadius: 2,
-    elevation: 1
+    elevation: 1,
+    flexDirection: "row"
   },
   completeButton: {
-    backgroundColor: "#34C759"
+    backgroundColor: "#34C75960"
   },
   errorButton: {
     backgroundColor: "#FF3B30"
@@ -413,7 +434,7 @@ const styles = StyleSheet.create({
     justifyContent: "center"
   },
   buttonText: {
-    color: "#FFF",
+    color: "#2e282ae6",
     fontWeight: "600",
     fontSize: 15,
     marginLeft: 8
