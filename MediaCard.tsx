@@ -190,7 +190,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({item, downloadState, onDown
 
           {/* File extension badge */}
           <View style={styles.formatBadge}>
-            <Text style={styles.formatBadgeText}>{getFileExtension(item.filename)}</Text>
+            <Text style={styles.formatBadgeText}>{getFileExtension(item.filename) || "File"}</Text>
           </View>
           {copyMessage && (
             <View style={styles.formatBadge}>
