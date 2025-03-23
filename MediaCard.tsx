@@ -35,6 +35,9 @@ interface MediaCardProps {
   onCancel: (url: string) => void
   itemWidth: number // New prop
   isLastInRow?: boolean // Optional prop to handle last item in row
+  isSelected?: boolean // Whether this item is selected
+  onSelectToggle?: (url: string) => void // Callback when selection is toggled
+  selectionMode?: boolean // Whether the app is in selection mode
 }
 
 export const MediaCard: React.FC<MediaCardProps> = ({
@@ -43,7 +46,10 @@ export const MediaCard: React.FC<MediaCardProps> = ({
   onDownload,
   onCancel,
   itemWidth,
-  isLastInRow
+  isLastInRow,
+  isSelected = false,
+  onSelectToggle,
+  selectionMode = false
 }) => {
   const [fileSizeInfo, setFileSizeInfo] = useState<string | null>(null)
   const [dimensions, setDimensions] = useState<{width: number; height: number} | null>(null)
@@ -56,8 +62,14 @@ export const MediaCard: React.FC<MediaCardProps> = ({
   const isError = downloadState?.status === "error"
   const isSaving = downloadState?.status === "saving"
 
-  // Handle copy URI action
+  // Handle copy URI action or toggle selection
   const handleCopyUri = useCallback(async () => {
+    // If in selection mode, toggle selection instead of copying
+    if (selectionMode && onSelectToggle) {
+      onSelectToggle(item.url)
+      return
+    }
+
     setCopyMessage(true)
     try {
       await Clipboard.setStringAsync(item.url)
@@ -69,7 +81,14 @@ export const MediaCard: React.FC<MediaCardProps> = ({
       console.error("Failed to copy URL:", error)
       setCopyMessage(false)
     }
-  }, [item.url, setCopyMessage])
+  }, [item.url, setCopyMessage, selectionMode, onSelectToggle])
+
+  // Handle long press to enter selection mode
+  const handleLongPress = useCallback(() => {
+    if (onSelectToggle) {
+      onSelectToggle(item.url)
+    }
+  }, [item.url, onSelectToggle])
 
   // Extract file extension from filename
   const getFileExtension = (filename: string): string => {
@@ -170,11 +189,18 @@ export const MediaCard: React.FC<MediaCardProps> = ({
 
   return (
     <View style={[styles.gridItem, {width: itemWidth}, isLastInRow && {marginRight: 0}]}>
-      <View style={[styles.mediaCard, {backgroundColor: theme === "dark" ? "#8C8C8CFF" : "#FFFFFF7C"}]}>
+      <View
+        style={[
+          styles.mediaCard,
+          {backgroundColor: theme === "dark" ? "#8C8C8CFF" : "#FFFFFF7C"},
+          isSelected ? styles.selectedCard : {}
+        ]}
+      >
         {/* Media thumbnail */}
         <TouchableOpacity
-          // style={styles.actionButton}
           onPress={handleCopyUri}
+          onLongPress={handleLongPress}
+          delayLongPress={300}
           activeOpacity={0.7}
           style={[
             styles.thumbnailContainer,
@@ -213,6 +239,13 @@ export const MediaCard: React.FC<MediaCardProps> = ({
           {copyMessage && (
             <View style={styles.formatBadge}>
               <Text style={styles.formatBadgeText}>URL copied to clipboard</Text>
+            </View>
+          )}
+
+          {/* Selection indicator */}
+          {isSelected && (
+            <View style={styles.selectionIndicator}>
+              <Ionicons name="checkmark-circle" size={28} color="#FFC814FF" />
             </View>
           )}
         </TouchableOpacity>
@@ -264,10 +297,11 @@ export const MediaCard: React.FC<MediaCardProps> = ({
                 style={[
                   styles.actionButton,
                   isComplete ? styles.completeButton : null,
-                  isError ? styles.errorButton : null
+                  isError ? styles.errorButton : null,
+                  isSelected ? {backgroundColor: "gray"} : null
                 ]}
-                onPress={() => onDownload(item)}
-                activeOpacity={0.7}
+                onPress={isSelected ? () => {} : () => onDownload(item)}
+                activeOpacity={isSelected ? 1 : 0.7}
               >
                 {isComplete ? (
                   <Ionicons name="checkmark" size={22} color="#2e282ae6" />
@@ -292,6 +326,27 @@ export const MediaCard: React.FC<MediaCardProps> = ({
 }
 
 const styles = StyleSheet.create({
+  selectedCard: {
+    borderWidth: 2,
+    borderColor: "#FFC814FF",
+    shadowColor: "#FFC814FF",
+    shadowOffset: {width: 0, height: 0},
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 5
+  },
+  selectionIndicator: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    zIndex: 10,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    borderRadius: 14,
+    width: 28,
+    height: 28,
+    justifyContent: "center",
+    alignItems: "center"
+  },
   gridItem: {
     marginBottom: 16,
     // marginHorizontal: GRID_SPACING / 2,

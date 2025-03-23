@@ -17,6 +17,7 @@ import {
   useColorScheme
 } from "react-native"
 import {StatusBar} from "expo-status-bar"
+import * as Haptics from "expo-haptics"
 import {Ionicons} from "@expo/vector-icons"
 
 // Ignore specific warnings
@@ -59,6 +60,10 @@ const App: React.FC = () => {
     cleanMediaItems
   } = useMediaExtractor()
 
+  // Selection state
+  const [selectedItems, setSelectedItems] = useState<Record<string, boolean>>({})
+  const [selectionMode, setSelectionMode] = useState(false)
+
   const {width, isLandscape} = useOrientation()
 
   // Dynamically adjust columns based on device type AND orientation
@@ -98,22 +103,6 @@ const App: React.FC = () => {
   const {recentUrls, isLoading: urlsLoading, addRecentUrl} = useRecentUrls()
   const theme = useColorScheme()
 
-  // Effect to handle URL extraction when it comes from recent URLs
-  useEffect(() => {
-    if (pendingExtractUrl) {
-      // If we have a pending URL to extract, do it now
-      // Give a small delay to ensure state updates are complete
-      const timer = setTimeout(() => {
-        // Always use the advanced WebView extraction
-        extractResources(true)
-        // Clear the pending flag
-        setPendingExtractUrl(null)
-      }, 50)
-
-      return () => clearTimeout(timer)
-    }
-  }, [pendingExtractUrl, extractResources])
-
   // Filtered media based on the current filter
   const filteredMedia = useMemo(() => {
     if (filterType === "all") return media
@@ -144,13 +133,99 @@ const App: React.FC = () => {
     return result
   }, [filteredMedia])
 
+  // Selection-related methods
+  const toggleItemSelection = useCallback(
+    async (itemUrl: string) => {
+      // Create a new selection state first
+      const newSelectionState = {
+        ...selectedItems,
+        [itemUrl]: !selectedItems[itemUrl]
+      }
+
+      // Check if any items remain selected after this update
+      const willHaveSelectedItems = Object.values(newSelectionState).some(Boolean)
+
+      // Update selection
+      setSelectedItems(newSelectionState)
+
+      // Update mode based on selection state
+      if (!selectionMode && willHaveSelectedItems) {
+        setSelectionMode(true)
+      } else if (selectionMode && !willHaveSelectedItems) {
+        setSelectionMode(false)
+      }
+
+      try {
+        await Haptics?.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+      } catch (error) {}
+    },
+    [selectionMode, selectedItems]
+  )
+
+  const clearSelection = useCallback(() => {
+    setSelectedItems({})
+    setSelectionMode(false)
+  }, [])
+
+  const selectAllItems = useCallback(() => {
+    // Check if all non-ad items are already selected
+    const totalSelectableItems = filteredMedia.filter(item => item.type !== "ad" && item.url).length
+    const currentlySelectedCount = Object.values(selectedItems).filter(Boolean).length
+
+    // If all items are already selected, clear the selection
+    if (currentlySelectedCount === totalSelectableItems && totalSelectableItems > 0) {
+      setSelectionMode(true)
+      setSelectedItems([] as any)
+
+      return
+    }
+
+    // Otherwise, perform normal "select all" operation
+    const newSelection: Record<string, boolean> = {}
+    filteredMedia.forEach(item => {
+      if (item.type !== "ad" && item.url) {
+        newSelection[item.url] = true
+      }
+    })
+    setSelectedItems(newSelection)
+    setSelectionMode(true)
+  }, [filteredMedia, selectedItems, clearSelection, setSelectionMode, setSelectedItems])
+
+  const downloadSelectedItems = useCallback(() => {
+    Object.keys(selectedItems).forEach(itemUrl => {
+      const item = media.find(m => m.url === itemUrl)
+      if (item && selectedItems[itemUrl]) {
+        downloadMedia(item)
+      }
+    })
+    // Optional: clear selection after download initiated
+    // clearSelection()
+  }, [selectedItems, media, downloadMedia])
+
+  // Effect to handle URL extraction when it comes from recent URLs
+  useEffect(() => {
+    if (pendingExtractUrl) {
+      // If we have a pending URL to extract, do it now
+      // Give a small delay to ensure state updates are complete
+      const timer = setTimeout(() => {
+        // Always use the advanced WebView extraction
+        extractResources(true)
+        // Clear the pending flag
+        setPendingExtractUrl(null)
+      }, 50)
+
+      return () => clearTimeout(timer)
+    }
+  }, [pendingExtractUrl, extractResources])
+
   // Pre-calculate derived UI states to reduce jank
   const uiState = useMemo(
     () => ({
       hasResults: media.length > 0,
-      resultCount: filteredMedia.length
+      resultCount: filteredMedia.length,
+      selectedCount: Object.values(selectedItems).filter(Boolean).length
     }),
-    [media.length, filteredMedia.length]
+    [media.length, filteredMedia.length, selectedItems]
   )
 
   // Handle search action - always use WebView extraction
@@ -243,10 +318,22 @@ const App: React.FC = () => {
           onCancel={handleCancelDownload}
           itemWidth={adjustedItemWidth}
           isLastInRow={(index + 1) % GRID_COLUMNS === 0}
+          isSelected={!!selectedItems[item.url]}
+          onSelectToggle={toggleItemSelection}
+          selectionMode={selectionMode}
         />
       )
     },
-    [downloadingItems, handleDownload, handleCancelDownload, ITEM_WIDTH, GRID_COLUMNS]
+    [
+      downloadingItems,
+      handleDownload,
+      handleCancelDownload,
+      ITEM_WIDTH,
+      GRID_COLUMNS,
+      selectedItems,
+      toggleItemSelection,
+      selectionMode
+    ]
   )
 
   // Optimize recent URL rendering
@@ -407,23 +494,51 @@ const App: React.FC = () => {
         {uiState.hasResults ? (
           <View style={styles.resultsContainer}>
             <View style={styles.resultsHeader}>
-              <FilterBar
-                currentFilter={filterType}
-                onFilterChange={handleFilterChange}
-                filters={[
-                  {id: "all", label: "All"},
-                  {id: "image", label: "Image"},
-                  {id: "video", label: "Video"},
-                  {id: "audio", label: "Audio"},
-                  {id: "svg", label: "SVG"},
-                  {id: "webp", label: "WebP"},
-                  {id: "gif", label: "GIF"},
-                  {id: "jpg", label: "JPG"},
-                  {id: "jpeg", label: "JPEG"},
-                  {id: "png", label: "PNG"}
-                ]}
-                resultCount={uiState.resultCount}
-              />
+              {selectionMode ? (
+                <View style={styles.selectionToolbar}>
+                  <Text style={styles.selectionCount}>{uiState.selectedCount} items selected</Text>
+                  <View style={styles.selectionActions}>
+                    <TouchableOpacity
+                      style={styles.selectionActionButton}
+                      onPress={downloadSelectedItems}
+                      disabled={uiState.selectedCount === 0}
+                    >
+                      <Ionicons
+                        name="cloud-download"
+                        size={22}
+                        color={uiState.selectedCount === 0 ? "#CCCCCC" : "#FFC814FF"}
+                      />
+                      <Text style={styles.selectionActionText}>Download</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.selectionActionButton} onPress={selectAllItems}>
+                      <Ionicons name="checkmark-circle" size={22} color="#FFC814FF" />
+                      <Text style={styles.selectionActionText}>Select All</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.selectionActionButton} onPress={clearSelection}>
+                      <Ionicons name="close-circle" size={22} color="#FFC814FF" />
+                      <Text style={styles.selectionActionText}>Cancel</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <FilterBar
+                  currentFilter={filterType}
+                  onFilterChange={handleFilterChange}
+                  filters={[
+                    {id: "all", label: "All"},
+                    {id: "image", label: "Image"},
+                    {id: "video", label: "Video"},
+                    {id: "audio", label: "Audio"},
+                    {id: "svg", label: "SVG"},
+                    {id: "webp", label: "WebP"},
+                    {id: "gif", label: "GIF"},
+                    {id: "jpg", label: "JPG"},
+                    {id: "jpeg", label: "JPEG"},
+                    {id: "png", label: "PNG"}
+                  ]}
+                  resultCount={uiState.resultCount}
+                />
+              )}
             </View>
             {/* <NativeAdCard itemWidth={200} itemHeight={300} /> */}
             <FlatList
@@ -450,7 +565,7 @@ const App: React.FC = () => {
               initialNumToRender={8}
               // Additional props for smooth filtering
               disableVirtualization={false}
-              extraData={filterType} // Ensures re-render when filter changes
+              extraData={{filterType, selectedItems, selectionMode}} // Object syntax is more reliable
               // Maintain position during updates
               maintainVisibleContentPosition={{
                 minIndexForVisible: 0
@@ -660,6 +775,39 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#999",
     marginLeft: 4
+  },
+  selectionToolbar: {
+    flexDirection: "column",
+    paddingVertical: 8,
+    backgroundColor: "transparent",
+    borderRadius: 8,
+    marginBottom: 8
+  },
+  selectionCount: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#2e282ae6",
+    marginBottom: 8
+  },
+  selectionActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center"
+  },
+  selectionActionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    backgroundColor: "#2e282ae6",
+    marginRight: 8
+  },
+  selectionActionText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#FFC814FF",
+    marginLeft: 6
   }
 })
 
