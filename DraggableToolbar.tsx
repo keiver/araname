@@ -59,6 +59,7 @@ export function DraggableToolbar({children, onPositionChange, initialPosition}: 
   const translateY = useSharedValue(initialPosition ?? defaultInitialPosition)
   const translateX = useSharedValue(0)
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [initialAnimationDone, setInitialAnimationDone] = useState(false)
 
   // Listen for dimension changes (orientation changes)
   useEffect(() => {
@@ -193,6 +194,17 @@ export function DraggableToolbar({children, onPositionChange, initialPosition}: 
     },
     [onPositionChange]
   )
+
+  useEffect(() => {
+    if (!initialAnimationDone) {
+      const timer = setTimeout(() => {
+        handleCollapse() // Use the existing collapse function
+        setInitialAnimationDone(true)
+      }, 3000)
+
+      return () => clearTimeout(timer)
+    }
+  }, [initialAnimationDone, handleCollapse])
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{translateY: translateY.value}, {translateX: translateX.value}]

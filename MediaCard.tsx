@@ -8,7 +8,8 @@ import {
   Image,
   Dimensions,
   Platform,
-  Alert
+  Alert,
+  useColorScheme
 } from "react-native"
 import {Ionicons} from "@expo/vector-icons"
 import {SvgUri} from "react-native-svg"
@@ -161,19 +162,28 @@ export const MediaCard: React.FC<MediaCardProps> = ({item, downloadState, onDown
     return `${Math.round(safeProgress * 100)}%`
   }, [downloadState])
 
+  const theme = useColorScheme()
+
   return (
     <View style={[styles.gridItem, {width: itemWidth - GRID_SPACING}]}>
-      <View style={styles.mediaCard}>
+      <View style={[styles.mediaCard, {backgroundColor: theme === "dark" ? "#8C8C8CFF" : "#FFFFFF7C"}]}>
         {/* Media thumbnail */}
         <TouchableOpacity
           // style={styles.actionButton}
           onPress={handleCopyUri}
           activeOpacity={0.7}
-          style={[styles.thumbnailContainer, {height: calculateThumbnailHeight(), minHeight: MIN_ITEM_HEIGHT}]}
+          style={[
+            styles.thumbnailContainer,
+            {
+              height: calculateThumbnailHeight(),
+              minHeight: MIN_ITEM_HEIGHT,
+              backgroundColor: theme === "dark" ? "#2e282ae6" : "#2e282ae6"
+            }
+          ]}
         >
           {item.type === "image" ? (
             item.format === "svg" ? (
-              <SvgUri width={"100%"} height={calculateThumbnailHeight()} uri={item.url} />
+              <SvgUri width={"100%"} height={calculateThumbnailHeight()} uri={item.url} style={styles.thumbnail} />
             ) : (
               <Image
                 source={{uri: item.url}}
@@ -189,9 +199,9 @@ export const MediaCard: React.FC<MediaCardProps> = ({item, downloadState, onDown
           )}
 
           {/* File extension badge */}
-          <View style={styles.formatBadge}>
+          {/* <View style={styles.formatBadge}>
             <Text style={styles.formatBadgeText}>{getFileExtension(item.filename) || "File"}</Text>
-          </View>
+          </View> */}
           {copyMessage && (
             <View style={styles.formatBadge}>
               <Text style={styles.formatBadgeText}>URL copied to clipboard</Text>
@@ -202,7 +212,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({item, downloadState, onDown
         {/* Media info and actions */}
         <View style={styles.infoContainer}>
           {/* Filename and dimensions */}
-          <Text style={styles.mediaFilename} numberOfLines={1}>
+          <Text style={styles.mediaFilename} numberOfLines={1} ellipsizeMode="middle">
             {item.filename}
           </Text>
 
@@ -214,6 +224,10 @@ export const MediaCard: React.FC<MediaCardProps> = ({item, downloadState, onDown
               <Text style={styles.mediaSize}>{fileSizeInfo}</Text>
             )}
           </View>
+          {/* <View style={styles.detailsRow}>
+            <Text> </Text>
+            <Text style={{fontWeight: "thin", fontSize: 11}}>[{getFileExtension(item.filename) || ""}] </Text>
+          </View> */}
 
           {/* Action area */}
           {isDownloading ? (
@@ -280,7 +294,7 @@ const styles = StyleSheet.create({
     elevation: 1
   },
   mediaCard: {
-    backgroundColor: "#FFFFFFDF",
+    // backgroundColor: "#FFFFFFDF",
     borderRadius: 23,
     overflow: "hidden",
     shadowColor: "#000",
@@ -293,10 +307,8 @@ const styles = StyleSheet.create({
   thumbnailContainer: {
     width: "100%",
     padding: 10,
-    backgroundColor: "#2e282ae6",
     position: "relative",
     overflow: "hidden"
-    // minHeight: 100
   },
   thumbnail: {
     width: "100%",
@@ -411,7 +423,7 @@ const styles = StyleSheet.create({
     width: "100%",
     minWidth: 100,
     maxWidth: 330,
-    backgroundColor: "#d1d8e0",
+    backgroundColor: "#FFC814FF",
     borderRadius: 122,
     justifyContent: "center",
     alignItems: "center",

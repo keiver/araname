@@ -13,7 +13,8 @@ import {
   Dimensions,
   Platform,
   Keyboard,
-  LogBox
+  LogBox,
+  useColorScheme
 } from "react-native"
 import {StatusBar} from "expo-status-bar"
 import {Ionicons} from "@expo/vector-icons"
@@ -62,6 +63,7 @@ const App: React.FC = () => {
   const dropdownRef = useRef(null)
 
   const {recentUrls, isLoading: urlsLoading, addRecentUrl} = useRecentUrls()
+  const theme = useColorScheme()
 
   // Effect to handle URL extraction when it comes from recent URLs
   useEffect(() => {
@@ -173,24 +175,38 @@ const App: React.FC = () => {
   const renderRecentUrlItem = useCallback(
     ({item}) => (
       <TouchableOpacity style={styles.recentUrlItem} onPress={() => handleRecentUrlSelect(item.url)}>
-        <Ionicons name="globe-outline" size={16} color="#666" />
-        <Text style={styles.recentUrlText} numberOfLines={1}>
+        <Ionicons name="globe-outline" size={16} color={theme === "dark" ? "#FFC814FF" : "#4A4A4AFF"} />
+        <Text
+          style={[
+            styles.recentUrlText,
+            {
+              color: theme === "dark" ? "#FFC814FF" : "#4A4A4AFF"
+            }
+          ]}
+          numberOfLines={1}
+        >
           {item.title || item.url}
         </Text>
         <Text style={styles.recentUrlTime}>{new Date(item.timestamp).toLocaleDateString()}</Text>
       </TouchableOpacity>
     ),
-    [handleRecentUrlSelect]
+    [handleRecentUrlSelect, theme]
   )
 
   const version_string = `v${versionFile.expo.version}` || "1"
 
   return (
     <GestureHandlerRootView style={{flex: 1, backgroundColor: "transparent"}}>
-      <SafeAreaView style={styles.container}>
-        <StatusBar style="dark" />
+      <SafeAreaView
+        style={[
+          styles.container,
+          {
+            backgroundColor: theme === "dark" ? "#3d3d3d" : "#cdcd"
+          }
+        ]}
+      >
+        <StatusBar style={theme === "dark" ? "light" : "dark"} backgroundColor="transparent" translucent={true} />
 
-        {/* Title */}
         <View
           style={{
             flexDirection: "row",
@@ -203,7 +219,13 @@ const App: React.FC = () => {
             style={[
               styles.modalTitle,
               {
+                color: theme === "dark" ? "#C8C8C8FF" : "#4A4A4AFF",
+                textShadowColor: theme === "dark" ? "#767676FF" : "#4A4A4A2F",
+                textShadowOffset: {width: 0, height: 1},
+                textShadowRadius: 2,
+                fontSize: 14,
                 position: "relative",
+                fontWeight: "500",
                 display: "flex",
                 justifyContent: "center",
                 alignItems: "center",
@@ -217,7 +239,9 @@ const App: React.FC = () => {
           <Text
             style={{
               marginVertical: 21,
-              fontSize: 12
+              fontSize: 12,
+              color: theme === "dark" ? "#C8C8C8FF" : "#4A4A4AFF"
+
               // fontWeight: "600"
             }}
           >
@@ -228,9 +252,9 @@ const App: React.FC = () => {
 
         {/* Search input */}
         <View style={styles.searchContainer}>
-          <View style={styles.inputWrapper}>
+          <View style={[styles.inputWrapper, {backgroundColor: theme === "dark" ? "#8F8E8E58" : "#E0E0EFFF"}]}>
             <TextInput
-              style={styles.input}
+              style={[styles.input, {color: theme === "dark" ? "#FFC814FF" : "#4A4A4AFF"}]}
               placeholder="Enter website URL"
               value={url}
               onChangeText={setUrl}
@@ -241,8 +265,16 @@ const App: React.FC = () => {
             />
 
             {recentUrls.length > 0 && (
-              <TouchableOpacity style={styles.historyButton} onPress={() => setShowRecentUrls(prevState => !prevState)}>
-                <Ionicons name="time-outline" size={22} color="#666" />
+              <TouchableOpacity
+                style={[
+                  styles.historyButton,
+                  {
+                    backgroundColor: theme === "dark" ? "#FFC8142C" : "#2e282ae6"
+                  }
+                ]}
+                onPress={() => setShowRecentUrls(prevState => !prevState)}
+              >
+                <Ionicons name="time-outline" size={22} color={theme === "dark" ? "#FFC8148A" : "#FFC814FF"} />
               </TouchableOpacity>
             )}
           </View>
@@ -263,7 +295,22 @@ const App: React.FC = () => {
               <View style={styles.dropdownOverlay} />
             </TouchableWithoutFeedback>
 
-            <View ref={dropdownRef} style={styles.recentUrlsContainer}>
+            <View
+              ref={dropdownRef}
+              style={[
+                styles.recentUrlsContainer,
+                {
+                  backgroundColor: theme === "dark" ? "#5F5F5FF9" : "#E0E0EFFF",
+                  borderColor: theme === "dark" ? "#8F8E8E58" : "#E0E0EFFF",
+                  borderWidth: 1,
+                  shadowColor: theme === "dark" ? "#00000029" : "#E0E0EFFF",
+                  shadowOffset: {width: 0, height: 3},
+                  shadowOpacity: 0.2,
+                  shadowRadius: 5,
+                  elevation: 10 // Increased elevation for Android
+                }
+              ]}
+            >
               <FlatList
                 data={recentUrls}
                 keyExtractor={item => item.url}
@@ -320,8 +367,23 @@ const App: React.FC = () => {
           </View>
         ) : (
           <View style={styles.emptyContainer}>
-            <Ionicons name="images-outline" size={80} color="#DDD" />
-            <Text style={styles.emptyText}>Enter a website URL to extract media</Text>
+            <Ionicons
+              name="images-outline"
+              size={80}
+              color={theme === "light" ? "#8F8F8FFF" : "#cdcd"}
+              style={styles.shadow}
+            />
+            <Text
+              style={[
+                styles.emptyText,
+                styles.shadow,
+                {
+                  color: theme === "dark" ? "#C8C8C8FF" : "#4A4A4AFF"
+                }
+              ]}
+            >
+              Enter a website URL to extract images and videos
+            </Text>
           </View>
         )}
         <DraggableToolbar>
@@ -335,21 +397,26 @@ const App: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fab1a0",
     paddingTop: Platform.OS === "android" ? RNStatusBar.currentHeight : 0
   },
   modalTitle: {
     // fontSize: 12,
     fontWeight: "800",
-    color: "#122441FF",
     marginVertical: 24,
     textAlign: "center"
     // letterSpacing: 0.5
   },
+  shadow: {
+    shadowColor: "#000",
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2
+  },
   title: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#333",
+    color: "#4A4A4AFF",
     textAlign: "center",
     marginTop: 16,
     marginBottom: 16
@@ -373,7 +440,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFF",
+    backgroundColor: "#FFFFFF29",
     borderRadius: 25,
     paddingRight: 8,
     shadowColor: "#000",
@@ -387,7 +454,8 @@ const styles = StyleSheet.create({
     height: 50,
     paddingHorizontal: 16,
     fontSize: 16,
-    color: "#333"
+    color: "#FFC312",
+    backgroundColor: "transparent"
   },
   searchButton: {
     width: 66,
@@ -405,7 +473,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#FFC4125C",
+    backgroundColor: "#CDCDCD38",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 4
@@ -432,7 +500,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: "#999",
+    color: "#4A4A4AFF",
     textAlign: "center",
     marginTop: 16
   },
@@ -442,7 +510,7 @@ const styles = StyleSheet.create({
     left: 16,
     right: 78,
     maxHeight: 300,
-    backgroundColor: "white",
+    backgroundColor: "transparent",
     borderRadius: 12,
     shadowColor: "#000",
     shadowOffset: {width: 0, height: 3},
@@ -456,10 +524,9 @@ const styles = StyleSheet.create({
   recentUrlItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0"
+    paddingVertical: 14,
+    paddingHorizontal: 22,
+    borderBottomWidth: 0
   },
   recentUrlText: {
     flex: 1,
