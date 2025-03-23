@@ -98,7 +98,7 @@ const InvisibleWebViewExtractor = ({
         });
 
         // Background images
-        const allElements = document.querySelectorAll('*');
+       const allElements = document.querySelectorAll('*');
         for (const element of allElements) {
           try {
             const style = window.getComputedStyle(element);
@@ -124,6 +124,62 @@ const InvisibleWebViewExtractor = ({
             }
           } catch (e) {
             // Skip elements with getComputedStyle errors
+            continue;
+          }
+        }
+
+        for (const element of allElements) {
+          try {
+            // Check :before pseudo-element
+              const beforeStyle = window.getComputedStyle(element, ':before');
+            const beforeBgImage = beforeStyle.backgroundImage;
+            
+            if (beforeBgImage && beforeBgImage !== 'none') {
+              try {
+                const matches = beforeBgImage.match(/url\\(['"]?([^'"()]+)['"]?\\)/g);
+                if (matches) {
+                  matches.forEach(match => {
+                    const url = match.replace(/url\\(['"]?([^'"()]+)['"]?\\)/, '$1');
+                    if (url && !url.startsWith('data:') && !processedUrls.has(url)) {
+                      processedUrls.add(url);
+                      const filename = sanitizeFilename(url, 'image');
+                      mediaItems.push({
+                        url,
+                        type: 'image',
+                        filename,
+                        format: getFormatFromFilename(filename)
+                      });
+                    }
+                  });
+                }
+              } catch (err) {
+                // Silently continue, but in future consider logging these errors for debugging
+              }
+            }
+            // Check :after pseudo-element
+            const afterStyle = window.getComputedStyle(element, ':after');
+            const afterBgImage = afterStyle.backgroundImage;
+            
+            if (afterBgImage && afterBgImage !== 'none') {
+              const matches = afterBgImage.match(/url\(['"]?([^'"()]+)['"]?\)/g);
+              if (matches) {
+                matches.forEach(match => {
+                  const url = match.replace(/url\(['"]?([^'"()]+)['"]?\)/, '$1');
+                  if (url && !url.startsWith('data:') && !processedUrls.has(url)) {
+                    processedUrls.add(url);
+                    const filename = sanitizeFilename(url, 'image');
+                    mediaItems.push({
+                      url,
+                      type: 'image',
+                      filename,
+                      format: getFormatFromFilename(filename)
+                    });
+                  }
+                });
+              }
+            }
+          } catch (e) {
+            // Skip elements with getComputedStyle errors for pseudo-elements
             continue;
           }
         }
@@ -225,7 +281,7 @@ const InvisibleWebViewExtractor = ({
       
       // Execute extraction after the page is fully loaded
       // Give some time for dynamic content to load
-      setTimeout(extractAllMedia, 2000);
+      setTimeout(extractAllMedia, 10000);
       
       // Return true to avoid string to be treated as a React Native WebView error
       true;

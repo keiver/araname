@@ -60,9 +60,26 @@ const App: React.FC = () => {
 
   const {width, isLandscape} = useOrientation()
 
-  const GRID_COLUMNS = 2 //Platform.OS === "ios" && Platform.isPad ? 3 : 2
+  // Dynamically adjust columns based on device type AND orientation
+  const GRID_COLUMNS =
+    Platform.OS === "ios"
+      ? Platform.isPad
+        ? 3 // iPad uses 3 columns
+        : isLandscape
+        ? 3
+        : 2 // iPhone: 3 cols landscape, 2 cols portrait
+      : 2 // Keep 2 columns for Android
+
   const GRID_SPACING = 14
-  const ITEM_WIDTH = (width - GRID_SPACING * (GRID_COLUMNS + 1)) / GRID_COLUMNS
+
+  // This is where the issue is - we need to account for FlatList's internal spacing
+  // FlatList has some internal spacing not accounted for in our calculations
+  const CONTAINER_PADDING = 32
+  const ADDITIONAL_PADDING = isLandscape && Platform.OS === "ios" && !Platform.isPad ? 10 : 0
+  const ADJUSTED_WIDTH = width - CONTAINER_PADDING - ADDITIONAL_PADDING
+
+  // Make sure we use integer values to avoid pixel misalignment
+  const ITEM_WIDTH = Math.floor((ADJUSTED_WIDTH - GRID_SPACING * (GRID_COLUMNS - 1)) / GRID_COLUMNS)
 
   // Filter state
   const [filterType, setFilterType] = useState<string>("all")
@@ -118,6 +135,7 @@ const App: React.FC = () => {
       addRecentUrl(url)
       // Always use the advanced WebView extraction
       extractResources(true)
+      setFilterType("all")
     }
   }, [url, addRecentUrl, extractResources])
 
@@ -182,16 +200,24 @@ const App: React.FC = () => {
 
   // Render each media item using our new MediaCard component
   const renderItem = useCallback(
-    ({item}) => (
-      <MediaCard
-        item={item}
-        downloadState={downloadingItems[item.url]}
-        onDownload={handleDownload}
-        onCancel={handleCancelDownload}
-        itemWidth={ITEM_WIDTH}
-      />
-    ),
-    [downloadingItems, handleDownload, handleCancelDownload, ITEM_WIDTH]
+    ({item, index}) => {
+      const adjustedItemWidth =
+        isLandscape && Platform.OS === "ios" && !Platform.isPad
+          ? ITEM_WIDTH - 40 // Landscape adjustment for iPhone
+          : ITEM_WIDTH // Normal width for portrait or iPad
+
+      return (
+        <MediaCard
+          item={item}
+          downloadState={downloadingItems[item.url]}
+          onDownload={handleDownload}
+          onCancel={handleCancelDownload}
+          itemWidth={adjustedItemWidth}
+          isLastInRow={(index + 1) % GRID_COLUMNS === 0}
+        />
+      )
+    },
+    [downloadingItems, handleDownload, handleCancelDownload, ITEM_WIDTH, GRID_COLUMNS]
   )
 
   // Optimize recent URL rendering
@@ -217,7 +243,7 @@ const App: React.FC = () => {
   )
 
   const version_string = `v${versionFile.expo.version}` || "1"
-  console.log("%cApp.tsx:219 filteredMedia", "color: #007acc;", filteredMedia)
+  // console.log("%cApp.tsx:219 filteredMedia", "color: #007acc;", filteredMedia)
   return (
     <GestureHandlerRootView style={{flex: 1, backgroundColor: "transparent"}}>
       <SafeAreaView
@@ -396,7 +422,7 @@ const App: React.FC = () => {
               maintainVisibleContentPosition={{
                 minIndexForVisible: 0
               }}
-              key={`grid-${GRID_COLUMNS}`} // Force re-render when columns change
+              key={`grid-${GRID_COLUMNS}-${isLandscape ? "landscape" : "portrait"}`}
             />
           </View>
         ) : (
@@ -541,7 +567,6 @@ const styles = StyleSheet.create({
   gridContainer: {
     paddingTop: 8,
     paddingBottom: 120
-    // paddingHorizontal: 11
   },
   emptyContainer: {
     flex: 1,

@@ -16,10 +16,6 @@ import {SvgUri} from "react-native-svg"
 import axios from "axios"
 import * as Clipboard from "expo-clipboard"
 
-const {width} = Dimensions.get("window")
-const GRID_COLUMNS = 2
-const GRID_SPACING = 12
-const ITEM_WIDTH = (width - GRID_SPACING * (GRID_COLUMNS + 1)) / GRID_COLUMNS
 const MIN_ITEM_HEIGHT = 150
 const MAX_ITEM_HEIGHT = 250
 const DEFAULT_ASPECT_RATIO = 1
@@ -38,9 +34,17 @@ interface MediaCardProps {
   onDownload: (item: any) => void
   onCancel: (url: string) => void
   itemWidth: number // New prop
+  isLastInRow?: boolean // Optional prop to handle last item in row
 }
 
-export const MediaCard: React.FC<MediaCardProps> = ({item, downloadState, onDownload, onCancel, itemWidth}) => {
+export const MediaCard: React.FC<MediaCardProps> = ({
+  item,
+  downloadState,
+  onDownload,
+  onCancel,
+  itemWidth,
+  isLastInRow
+}) => {
   const [fileSizeInfo, setFileSizeInfo] = useState<string | null>(null)
   const [dimensions, setDimensions] = useState<{width: number; height: number} | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -165,7 +169,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({item, downloadState, onDown
   const theme = useColorScheme()
 
   return (
-    <View style={[styles.gridItem, {width: itemWidth - GRID_SPACING}]}>
+    <View style={[styles.gridItem, {width: itemWidth}, isLastInRow && {marginRight: 0}]}>
       <View style={[styles.mediaCard, {backgroundColor: theme === "dark" ? "#8C8C8CFF" : "#FFFFFF7C"}]}>
         {/* Media thumbnail */}
         <TouchableOpacity
@@ -286,12 +290,13 @@ export const MediaCard: React.FC<MediaCardProps> = ({item, downloadState, onDown
 const styles = StyleSheet.create({
   gridItem: {
     marginBottom: 16,
-    marginHorizontal: GRID_SPACING / 2,
+    // marginHorizontal: GRID_SPACING / 2,
     shadowColor: "#000",
     shadowOffset: {width: 0, height: 1},
     shadowOpacity: 0.05,
     shadowRadius: 2,
-    elevation: 1
+    elevation: 1,
+    marginRight: 14 // Explicitly add right margin to match GRID_SPACING from App.tsx
   },
   mediaCard: {
     // backgroundColor: "#FFFFFFDF",
@@ -435,7 +440,7 @@ const styles = StyleSheet.create({
     flexDirection: "row"
   },
   completeButton: {
-    backgroundColor: "#34C75960"
+    backgroundColor: "#b8e994"
   },
   errorButton: {
     backgroundColor: "#FF3B30"

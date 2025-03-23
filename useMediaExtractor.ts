@@ -344,7 +344,7 @@ const useMediaExtractor = () => {
               if (!style) return
 
               try {
-                const urlMatch = style.match(/url\(['"]?([^'"()]+)['"]?\)/i)
+                const urlMatch = style.match(/url\(\s*['"]?([^'"()]+)['"]?\s*\)/i)
                 if (!urlMatch?.[1]) return
 
                 const bgUrl = urlMatch[1]
