@@ -27,7 +27,7 @@ LogBox.ignoreLogs([
 ])
 
 // Import our custom hook
-import {useMediaExtractor} from "./useMediaExtractor"
+import useMediaExtractor from "./useMediaExtractor"
 
 // Import our new components
 import {MediaCard} from "./MediaCard"
@@ -37,17 +37,31 @@ import {useOrientation} from "./useOrientation"
 import Actions from "./Actions"
 import DraggableToolbar from "./DraggableToolbar"
 import {GestureHandlerRootView} from "react-native-gesture-handler"
+import InvisibleWebViewExtractor from "./Extractor"
 
 const versionFile = require("./app.json")
 
 const App: React.FC = () => {
-  const {url, setUrl, loading, media, downloadingItems, extractResources, downloadMedia, cancelDownload} =
-    useMediaExtractor()
+  const {
+    url,
+    setUrl,
+    loading,
+    media,
+    downloadingItems,
+    extractResources,
+    downloadMedia,
+    cancelDownload,
+    formatUrl,
+    useWebViewExtraction,
+    handleWebViewResults,
+    extractionInProgress,
+    cleanMediaItems
+  } = useMediaExtractor()
 
   const {width, isLandscape} = useOrientation()
 
-  const GRID_COLUMNS = Platform.OS === "ios" && Platform.isPad ? 3 : 2
-  const GRID_SPACING = 12
+  const GRID_COLUMNS = 2 //Platform.OS === "ios" && Platform.isPad ? 3 : 2
+  const GRID_SPACING = 14
   const ITEM_WIDTH = (width - GRID_SPACING * (GRID_COLUMNS + 1)) / GRID_COLUMNS
 
   // Filter state
@@ -72,7 +86,8 @@ const App: React.FC = () => {
       // If we have a pending URL to extract, do it now
       // Give a small delay to ensure state updates are complete
       const timer = setTimeout(() => {
-        extractResources()
+        // Always use the advanced WebView extraction
+        extractResources(true)
         // Clear the pending flag
         setPendingExtractUrl(null)
       }, 50)
@@ -96,12 +111,13 @@ const App: React.FC = () => {
     [media.length, filteredMedia.length]
   )
 
-  // Handle search action
+  // Handle search action - always use WebView extraction
   const handleSearch = useCallback(() => {
     Keyboard.dismiss()
     if (url) {
       addRecentUrl(url)
-      extractResources()
+      // Always use the advanced WebView extraction
+      extractResources(true)
     }
   }, [url, addRecentUrl, extractResources])
 
@@ -201,7 +217,7 @@ const App: React.FC = () => {
   )
 
   const version_string = `v${versionFile.expo.version}` || "1"
-
+  console.log("%cApp.tsx:219 filteredMedia", "color: #007acc;", filteredMedia)
   return (
     <GestureHandlerRootView style={{flex: 1, backgroundColor: "transparent"}}>
       <SafeAreaView
@@ -308,8 +324,9 @@ const App: React.FC = () => {
               style={[
                 styles.recentUrlsContainer,
                 {
+                  width: width - 108,
                   backgroundColor: theme === "dark" ? "#5F5F5FF9" : "#E0E0EFFF",
-                  borderColor: theme === "dark" ? "#8F8E8E58" : "#E0E0EFFF",
+                  borderColor: theme === "dark" ? "#00000029" : "#00000029",
                   borderWidth: 1,
                   shadowColor: theme === "dark" ? "#00000029" : "#E0E0EFFF",
                   shadowOffset: {width: 0, height: 3},
@@ -355,10 +372,19 @@ const App: React.FC = () => {
               renderItem={renderItem}
               keyExtractor={keyExtractor}
               numColumns={GRID_COLUMNS}
-              contentContainerStyle={styles.gridContainer}
+              contentContainerStyle={[
+                styles.gridContainer,
+                {
+                  paddingBottom:
+                    180 +
+                    // If the last row is incomplete, add extra space
+                    (filteredMedia.length % GRID_COLUMNS !== 0 ? 40 : 0)
+                }
+              ]}
               showsVerticalScrollIndicator={false}
               // Performance optimization props
-              removeClippedSubviews={true}
+              removeClippedSubviews={false} // Ensures items are rendered properly at edges
+              scrollIndicatorInsets={{bottom: 140}} // Matches toolbar height
               maxToRenderPerBatch={4}
               updateCellsBatchingPeriod={50}
               windowSize={9}
@@ -399,6 +425,16 @@ const App: React.FC = () => {
         <DraggableToolbar>
           <Actions />
         </DraggableToolbar>
+        {/* Always include the WebView extractor when extraction is in progress */}
+        {extractionInProgress && (
+          <InvisibleWebViewExtractor
+            url={formatUrl(url)}
+            onMediaExtracted={handleWebViewResults}
+            onError={() => {
+              setLoading(false)
+            }}
+          />
+        )}
       </SafeAreaView>
     </GestureHandlerRootView>
   )
