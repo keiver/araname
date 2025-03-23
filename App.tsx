@@ -457,6 +457,18 @@ const App: React.FC = () => {
               }}
               key={`grid-${GRID_COLUMNS}-${isLandscape ? "landscape" : "portrait"}`}
             />
+            {filteredMedia.length === 0 && (
+              <View
+                style={[
+                  styles.gridContainer,
+                  {
+                    paddingBottom: "100%"
+                  }
+                ]}
+              >
+                <NativeAdCard itemWidth={180} itemHeight={300} />
+              </View>
+            )}
           </View>
         ) : (
           <TouchableWithoutFeedback onPress={focusInput}>
@@ -599,7 +611,8 @@ const styles = StyleSheet.create({
   },
   gridContainer: {
     paddingTop: 8,
-    paddingBottom: 120
+    paddingBottom: 120,
+    backgroundColor: "transparent"
   },
   emptyContainer: {
     flex: 1,

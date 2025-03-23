@@ -36,11 +36,11 @@ const NativeAdCard: React.FC<NativeAdCardProps> = ({itemWidth, itemHeight, onAdL
   const isMountedRef = useRef(true)
 
   // Force dimensions to be at least 120x120 for MediaView to ensure compliance
-  const actualWidth = Math.max(itemWidth, 130)
-  const actualHeight = Math.max(itemHeight, 180)
+  const actualWidth = Math.max(itemWidth, 120)
+  const actualHeight = Math.max(itemHeight, 160)
 
   // Calculate media height (total height minus space for info container)
-  const mediaHeight = actualHeight - 50 // 50px for info container approximate height
+  const mediaHeight = actualHeight - 150 // 50px for info container approximate height
 
   useEffect(() => {
     isMountedRef.current = true
@@ -150,8 +150,7 @@ const NativeAdCard: React.FC<NativeAdCardProps> = ({itemWidth, itemHeight, onAdL
           style={{
             width: actualWidth - 10,
             height: mediaHeight - 10,
-            backgroundColor: "#2a2a2a",
-            borderRadius: 23
+            backgroundColor: "transparent"
           }}
         />
       </View>
@@ -160,20 +159,18 @@ const NativeAdCard: React.FC<NativeAdCardProps> = ({itemWidth, itemHeight, onAdL
         style={[
           styles.infoContainer,
           {
-            backgroundColor: theme === "dark" ? "#171717B4" : "#F5F5F5E2",
+            backgroundColor: theme === "dark" ? "#171717B4" : "#130E0EEF",
             width: actualWidth + 1,
-            marginLeft: -1,
-            height: 20,
+            marginLeft: -2,
             position: "absolute",
-            bottom: 0,
-            paddingBottom: 5
+            bottom: 0
           }
         ]}
       >
         <View style={styles.textContainer}>
           <NativeAsset assetType={NativeAssetType.HEADLINE}>
             <Text
-              style={[styles.headline, {color: theme === "dark" ? "#F5F5F5C9" : "#171717B4"}]}
+              style={[styles.headline, {color: theme === "dark" ? "#F5F5F5C9" : "#2e282ae6"}]}
               numberOfLines={1}
               ellipsizeMode="tail"
             >
@@ -201,18 +198,19 @@ const NativeAdCard: React.FC<NativeAdCardProps> = ({itemWidth, itemHeight, onAdL
 const styles = StyleSheet.create({
   container: {
     borderWidth: 1,
-    borderColor: "#3d3d3d",
+    borderColor: "#3D3D3D21",
     borderRadius: 23,
     overflow: Platform.OS === "android" ? "visible" : "hidden",
     marginRight: 12,
     marginBottom: 12
   },
   mediaContainer: {
+    display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    paddingTop: 5,
-    backgroundColor: "#2a2a2a",
-    overflow: "hidden"
+    paddingTop: 53,
+    backgroundColor: "#2a2a2a"
+    // overflow: "hidden"
   },
   infoContainer: {
     flexDirection: "row",
@@ -223,30 +221,31 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     flex: 1,
-    paddingBottom: 10,
+    paddingBottom: 1,
     paddingRight: 24, // Space for AD badge
-    paddingTop: 4
+    paddingTop: 8,
+    backgroundColor: "transparent"
   },
   headline: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "400"
   },
   callToActionButton: {
-    backgroundColor: "yellow",
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+    backgroundColor: "#FFC814FF",
+    paddingVertical: 6,
+    paddingHorizontal: 10,
     borderRadius: 42,
-    marginTop: 4,
+    marginTop: 14,
     alignSelf: "flex-start",
-    height: 20
+    height: 24
   },
   callToActionText: {
     fontSize: 10,
     fontWeight: "bold",
-    color: "#FFFFFF"
+    color: "#2e282ae6"
   },
   adBadge: {
-    backgroundColor: "yellow",
+    backgroundColor: "#FFC814FF",
     paddingHorizontal: 4,
     paddingVertical: 2,
     justifyContent: "center",
@@ -255,7 +254,8 @@ const styles = StyleSheet.create({
     borderRadius: 42
   },
   adBadgeText: {
-    color: "#FFFFFF",
+    color: "#2e282ae6",
+
     fontSize: 8,
     fontWeight: "bold"
   }
