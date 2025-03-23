@@ -531,7 +531,7 @@ const App: React.FC = () => {
                           }
                         ]}
                       >
-                        Download {zipProgress >= 0 ? <Text>{zipProgress?.toFixed(0) || ""}%</Text> : ""}
+                        Download Zip {zipProgress >= 0 ? <Text>{zipProgress?.toFixed(0) || ""}%</Text> : ""}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.selectionActionButton} onPress={selectAllItems}>
@@ -815,7 +815,8 @@ const styles = StyleSheet.create({
   },
   selectionActions: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
+    gap: 8,
     alignItems: "center"
   },
   selectionActionButton: {
