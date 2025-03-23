@@ -13,12 +13,13 @@ const Header: React.FC<HeaderProps> = ({onSettings, onBulkDownload, onAdSettings
     <View style={styles.headerContainer}>
       <View style={styles.actionsContainer}>
         <TouchableOpacity style={styles.actionButton} onPress={onBulkDownload}>
-          <Ionicons name="download-outline" size={30} color="#FFC312" />
-          <Text style={{fontSize: 10, color: "#FFC312"}}>Download Zip</Text>
+          <Ionicons name="chatbox" size={30} color="#FFC312" />
+          <Text style={{fontSize: 10, color: "#FFC312"}}>Remove Ads</Text>
         </TouchableOpacity>
-        {/* <TouchableOpacity style={styles.actionButton} onPress={onAdSettings}>
+        <TouchableOpacity style={styles.actionButton} onPress={onAdSettings}>
           <Ionicons name="pricetag-outline" size={30} color="#FFC312" />
-        </TouchableOpacity> */}
+          <Text style={{fontSize: 10, color: "#FFC312"}}>Restore Purchases</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton} onPress={onSettings}>
           <Ionicons name="settings-outline" size={30} color="#FFC312" />
           <Text style={{fontSize: 10, color: "#FFC312"}}>Settings</Text>
@@ -45,18 +46,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 20
+    gap: 10
   },
   actionButton: {
-    width: 166,
+    width: 106,
     height: 66,
     borderRadius: 0,
     backgroundColor: "#E4582E00",
     justifyContent: "center",
     alignItems: "center",
+    gap: 10,
     borderWidth: 0,
-    borderColor: "#FFC312"
-    // marginLeft: 10
+    borderColor: "#FFC312",
+    marginTop: 7
   }
 })
 

@@ -41,6 +41,7 @@ import {GestureHandlerRootView} from "react-native-gesture-handler"
 import InvisibleWebViewExtractor from "./Extractor"
 import NativeAdCard from "./ads/NativeAdCard"
 import compressAndDownloadFiles from "./useZip"
+import AdBanner, {AdBannerRef} from "./ads/AdBanner"
 
 const versionFile = require("./app.json")
 
@@ -80,6 +81,17 @@ const App: React.FC = () => {
       : 2 // Keep 2 columns for Android
 
   const GRID_SPACING = 14
+
+  const adBannerRef = useRef<AdBannerRef>(null)
+  const [interCoutner, setInterCounter] = useState(0)
+  const showInterstitialAd = useCallback(async () => {
+    if (adBannerRef.current) {
+      const result = await adBannerRef.current.showInterstitial()
+      console.log(`Interstitial show attempt result: ${result}`)
+      return result
+    }
+    return false
+  }, [adBannerRef])
 
   // This is where the issue is - we need to account for FlatList's internal spacing
   // FlatList has some internal spacing not accounted for in our calculations
@@ -203,7 +215,7 @@ const App: React.FC = () => {
     } catch (error) {}
   }, [filteredMedia, selectedItems, clearSelection, setSelectionMode, setSelectedItems])
 
-  const downloadSelectedItems = useCallback(() => {
+  const downloadSelectedItems = useCallback(async () => {
     setZipProgress(0)
 
     const urls = filteredMedia
@@ -211,11 +223,22 @@ const App: React.FC = () => {
       ?.map(item => item.url)
       .filter(Boolean) as string[]
 
-    compressAndDownloadFiles(urls, `araname-downloaded-resources-${Date.now()}.zip`, r => {
+    await compressAndDownloadFiles(urls, `araname-downloaded-resources-${Date.now()}.zip`, r => {
       console.log("Download progress", r)
       setZipProgress(r)
     })
-  }, [selectedItems, compressAndDownloadFiles, setZipProgress])
+
+    if (interCoutner % 3 === 0) {
+      // Show interstitial ad every 3 downloads
+      await showInterstitialAd().then(result => {
+        if (result) {
+          setInterCounter(0) // Reset counter if ad was shown
+        }
+      })
+    } else {
+      setInterCounter(prev => prev + 1) // Increment counter if ad wasn't shown
+    }
+  }, [selectedItems, compressAndDownloadFiles, setZipProgress, setInterCounter, interCoutner])
 
   // Effect to handle URL extraction when it comes from recent URLs
   useEffect(() => {
@@ -645,6 +668,12 @@ const App: React.FC = () => {
             }}
           />
         )}
+        <AdBanner
+          ref={adBannerRef}
+          interstitial
+          onInterstitialShown={() => console.log("Interstitial shown")}
+          onInterstitialClosed={() => console.log("Interstitial closed")}
+        />
       </SafeAreaView>
     </GestureHandlerRootView>
   )

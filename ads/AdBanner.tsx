@@ -6,13 +6,13 @@ import useIAP from "./usePurchaseManager"
 
 // Ad unit IDs, keeping as is
 const PRODUCTION_BANNER_ID = Platform.select({
-  ios: "ca-app-pub-6899536859351708/1504976759",
-  android: "ca-app-pub-6899536859351708/5225833566"
+  ios: "ca-app-pub-6899536859351708/1", // TODO: replace with actual production ID
+  android: "ca-app-pub-6899536859351708/1" // TODO: replace with actual production ID
 }) as string
 
 const PRODUCTION_INTERSTITIAL_ID = Platform.select({
-  ios: "ca-app-pub-6899536859351708/7284783017",
-  android: "ca-app-pub-6899536859351708/6718878636"
+  ios: "ca-app-pub-6899536859351708/9605325023", // DONE
+  android: "ca-app-pub-6899536859351708/7048478288" // DONE
 }) as string
 
 interface AdBannerProps {
@@ -120,7 +120,7 @@ const AdBanner = forwardRef<AdBannerRef, AdBannerProps>((props, ref) => {
         // Create new ad
         const ad = InterstitialAd.createForAdRequest(interstitialAdUnitId, {
           requestNonPersonalizedAdsOnly: true,
-          keywords: ["game", "memory", "puzzle", "egypt"]
+          keywords: ["image", "download", "media", "gallery"]
         })
 
         // Set up event listeners
