@@ -38,6 +38,7 @@ import Actions from "./Actions"
 import DraggableToolbar from "./DraggableToolbar"
 import {GestureHandlerRootView} from "react-native-gesture-handler"
 import InvisibleWebViewExtractor from "./Extractor"
+import NativeAdCard from "./ads/NativeAdCard"
 
 const versionFile = require("./app.json")
 
@@ -118,6 +119,30 @@ const App: React.FC = () => {
     if (filterType === "all") return media
     return media.filter(item => item.type === filterType || item.format === filterType)
   }, [media, filterType])
+
+  const mediaWithAds = useMemo(() => {
+    if (filteredMedia.length === 0) return []
+
+    // Create a new array with ads inserted at regular intervals
+    const result = [...filteredMedia]
+
+    // Insert an ad after every 6 items (adjust this number as needed)
+    const adInterval = 6
+    let insertedAds = 0
+
+    for (let i = adInterval; i < result.length + insertedAds; i += adInterval + 1) {
+      // Create a special ad item that can be identified in renderItem
+      result.splice(i, 0, {
+        isAd: true,
+        id: `ad-${insertedAds}`,
+        url: `ad-${insertedAds}`,
+        type: "ad"
+      })
+      insertedAds++
+    }
+
+    return result
+  }, [filteredMedia])
 
   // Pre-calculate derived UI states to reduce jank
   const uiState = useMemo(
@@ -205,6 +230,10 @@ const App: React.FC = () => {
         isLandscape && Platform.OS === "ios" && !Platform.isPad
           ? ITEM_WIDTH - 40 // Landscape adjustment for iPhone
           : ITEM_WIDTH // Normal width for portrait or iPad
+
+      if (item.type === "ad") {
+        return <NativeAdCard itemWidth={adjustedItemWidth} itemHeight={300} key={item.id} />
+      }
 
       return (
         <MediaCard
@@ -383,18 +412,22 @@ const App: React.FC = () => {
                 onFilterChange={handleFilterChange}
                 filters={[
                   {id: "all", label: "All"},
-                  {id: "image", label: "Images"},
-                  {id: "video", label: "Videos"},
+                  {id: "image", label: "Image"},
+                  {id: "video", label: "Video"},
+                  {id: "audio", label: "Audio"},
                   {id: "svg", label: "SVG"},
                   {id: "webp", label: "WebP"},
-                  {id: "gif", label: "GIFs"}
+                  {id: "gif", label: "GIF"},
+                  {id: "jpg", label: "JPG"},
+                  {id: "jpeg", label: "JPEG"},
+                  {id: "png", label: "PNG"}
                 ]}
                 resultCount={uiState.resultCount}
               />
             </View>
-
+            {/* <NativeAdCard itemWidth={200} itemHeight={300} /> */}
             <FlatList
-              data={filteredMedia}
+              data={mediaWithAds}
               renderItem={renderItem}
               keyExtractor={keyExtractor}
               numColumns={GRID_COLUMNS}
@@ -404,7 +437,7 @@ const App: React.FC = () => {
                   paddingBottom:
                     180 +
                     // If the last row is incomplete, add extra space
-                    (filteredMedia.length % GRID_COLUMNS !== 0 ? 40 : 0)
+                    (mediaWithAds.length % GRID_COLUMNS !== 0 ? 40 : 0)
                 }
               ]}
               showsVerticalScrollIndicator={false}

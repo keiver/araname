@@ -50,7 +50,7 @@ export function DraggableToolbar({children, onPositionChange, initialPosition}: 
   })
 
   // Use current dimensions to calculate max offset and initial position
-  const minOffset = 0
+  const minOffset = -10
   const maxOffset = dimensions.height - TOOLBAR_HEIGHT
 
   // Calculate default initialPosition based on current dimensions if not provided
@@ -278,6 +278,7 @@ const styles = StyleSheet.create({
     display: "flex",
     justifyContent: "center",
     alignItems: "center"
+    // paddingTop: 40
   },
   closeButton: {
     position: "absolute",

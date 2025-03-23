@@ -49,7 +49,15 @@
           "savePhotosPermission": "Allow araname to save images and videos to your photo library.",
           "isAccessMediaLocationEnabled": true
         }
-      ]
+      ],
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-6899536859351708~1684804101",
+          "iosAppId": "ca-app-pub-6899536859351708~7051647011"
+        }
+      ],
+      "react-native-iap"
     ]
   }
 }

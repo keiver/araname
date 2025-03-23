@@ -88,6 +88,7 @@ android {
 
     namespace 'dev.keiver.araname'
     defaultConfig {
+missingDimensionStrategy "store", "play"
         applicationId 'dev.keiver.araname'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion

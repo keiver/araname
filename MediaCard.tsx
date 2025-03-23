@@ -196,9 +196,13 @@ export const MediaCard: React.FC<MediaCardProps> = ({
                 onLoad={() => setImageLoaded(true)}
               />
             )
-          ) : (
+          ) : item?.type === "video" ? (
             <View style={styles.videoThumbnail}>
               <Ionicons name="videocam" size={36} color="#007AFF" />
+            </View>
+          ) : (
+            <View style={styles.videoThumbnail}>
+              <Ionicons name="musical-notes-outline" size={36} color="#007AFF" />
             </View>
           )}
 

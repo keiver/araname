@@ -24,15 +24,22 @@ export const FilterBar: React.FC<FilterBarProps> = ({currentFilter, onFilterChan
       case "all":
         return "grid-outline"
       case "image":
-        return "image-outline"
+        return "images-outline"
       case "video":
         return "videocam-outline"
+      case "audio":
+        return "musical-notes-outline"
       case "svg":
         return "code-outline"
       case "webp":
         return "layers-outline"
       case "gif":
         return "film-outline"
+      case "jpg":
+      case "jpeg":
+        return "image-outline"
+      case "png":
+        return "image-outline"
       default:
         return "document-outline"
     }

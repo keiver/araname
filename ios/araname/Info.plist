@@ -35,6 +35,10 @@
     <string>1</string>
     <key>EXDefaultScreenOrientationMask</key>
     <string>UIInterfaceOrientationMaskAllButUpsideDown</string>
+    <key>GADApplicationIdentifier</key>
+    <string>ca-app-pub-6899536859351708~7051647011</string>
+    <key>GADDelayAppMeasurementInit</key>
+    <false/>
     <key>LSMinimumSystemVersion</key>
     <string>12.0</string>
     <key>LSRequiresIPhoneOS</key>

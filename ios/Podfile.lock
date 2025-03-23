@@ -76,6 +76,9 @@ PODS:
   - FBLazyVector (0.78.0)
   - fmt (11.0.2)
   - glog (0.3.5)
+  - Google-Mobile-Ads-SDK (12.2.0):
+    - GoogleUserMessagingPlatform (>= 1.1)
+  - GoogleUserMessagingPlatform (2.7.0)
   - hermes-engine (0.78.0):
     - hermes-engine/Pre-built (= 0.78.0)
   - hermes-engine/Pre-built (0.78.0)
@@ -1659,6 +1662,35 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
+  - RNGoogleMobileAds (14.10.1):
+    - DoubleConversion
+    - glog
+    - Google-Mobile-Ads-SDK (= 12.2.0)
+    - GoogleUserMessagingPlatform (= 2.7.0)
+    - hermes-engine
+    - RCT-Folly (= 2024.11.18.00)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - Yoga
+  - RNIap (12.16.2):
+    - RCT-Folly
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - ReactCommon/turbomodule/core
   - RNReanimated (3.17.1):
     - DoubleConversion
     - glog
@@ -1909,12 +1941,16 @@ DEPENDENCIES:
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
   - "RNCAsyncStorage (from `../node_modules/@react-native-async-storage/async-storage`)"
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
+  - RNGoogleMobileAds (from `../node_modules/react-native-google-mobile-ads`)
+  - RNIap (from `../node_modules/react-native-iap`)
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNSVG (from `../node_modules/react-native-svg`)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
 SPEC REPOS:
   trunk:
+    - Google-Mobile-Ads-SDK
+    - GoogleUserMessagingPlatform
     - SocketRocket
 
 EXTERNAL SOURCES:
@@ -2083,6 +2119,10 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@react-native-async-storage/async-storage"
   RNGestureHandler:
     :path: "../node_modules/react-native-gesture-handler"
+  RNGoogleMobileAds:
+    :path: "../node_modules/react-native-google-mobile-ads"
+  RNIap:
+    :path: "../node_modules/react-native-iap"
   RNReanimated:
     :path: "../node_modules/react-native-reanimated"
   RNSVG:
@@ -2111,6 +2151,8 @@ SPEC CHECKSUMS:
   FBLazyVector: 6fe148afcef2e3213e484758e3459609d40d57f5
   fmt: a40bb5bd0294ea969aaaba240a927bd33d878cdd
   glog: eb93e2f488219332457c3c4eafd2738ddc7e80b8
+  Google-Mobile-Ads-SDK: 1dfb0c3cb46c7e2b00b0f4de74a1e06d9ea25d67
+  GoogleUserMessagingPlatform: a8b56893477f67212fbc8411c139e61d463349f5
   hermes-engine: b417d2b2aee3b89b58e63e23a51e02be91dc876d
   RCT-Folly: e78785aa9ba2ed998ea4151e314036f6c49e6d82
   RCTDeprecation: b2eecf2d60216df56bc5e6be5f063826d3c1ee35
@@ -2173,6 +2215,8 @@ SPEC CHECKSUMS:
   ReactCommon: 0c097b53f03d6bf166edbcd0915da32f3015dd90
   RNCAsyncStorage: 6c619a6d28e188d33efbd39df77a2c3933d9ca72
   RNGestureHandler: b47f1bb0dfc2dcc09d5f3a16f951c3f493d085b6
+  RNGoogleMobileAds: 2b0a79f6347eceed3d0654d15fb9c47405a0dbf5
+  RNIap: d73cedfb73b396cad75f90f4ed7d64352d6381cf
   RNReanimated: 6383cd0d805e48768b97bd65bcb1d06f0e69ab8e
   RNSVG: 8126581b369adf6a0004b6a6cab1a55e3002d5b0
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
