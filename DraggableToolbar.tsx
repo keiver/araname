@@ -311,8 +311,8 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     justifyContent: "center",
-    alignItems: "center",
-    paddingTop: 24
+    alignItems: "center"
+    // paddingTop: 24
   },
   handleContainer: {
     top: 14,
@@ -326,7 +326,8 @@ const styles = StyleSheet.create({
     backgroundColor: "orange",
     opacity: 0.4,
     borderRadius: 2,
-    marginLeft: 22
+    margin: 0,
+    padding: 0
   }
 })
 

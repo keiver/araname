@@ -14,12 +14,14 @@ const Header: React.FC<HeaderProps> = ({onSettings, onBulkDownload, onAdSettings
       <View style={styles.actionsContainer}>
         <TouchableOpacity style={styles.actionButton} onPress={onBulkDownload}>
           <Ionicons name="download-outline" size={30} color="#FFC312" />
+          <Text style={{fontSize: 10, color: "#FFC312"}}>Download Zip</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton} onPress={onAdSettings}>
+        {/* <TouchableOpacity style={styles.actionButton} onPress={onAdSettings}>
           <Ionicons name="pricetag-outline" size={30} color="#FFC312" />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
         <TouchableOpacity style={styles.actionButton} onPress={onSettings}>
           <Ionicons name="settings-outline" size={30} color="#FFC312" />
+          <Text style={{fontSize: 10, color: "#FFC312"}}>Settings</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -29,10 +31,10 @@ const Header: React.FC<HeaderProps> = ({onSettings, onBulkDownload, onAdSettings
 const styles = StyleSheet.create({
   headerContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 10,
-    marginTop: -23
+    justifyContent: "center",
+    alignItems: "center"
+    // padding: 10
+    // marginTop: -23
   },
   title: {
     fontSize: 18,
@@ -46,15 +48,15 @@ const styles = StyleSheet.create({
     gap: 20
   },
   actionButton: {
-    width: 66,
+    width: 166,
     height: 66,
-    borderRadius: 3318,
+    borderRadius: 0,
     backgroundColor: "#E4582E00",
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
-    borderColor: "#FFC312",
-    marginLeft: 10
+    borderColor: "#FFC312"
+    // marginLeft: 10
   }
 })
 

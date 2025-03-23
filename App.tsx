@@ -61,6 +61,7 @@ const App: React.FC = () => {
 
   // Reference for detecting outside taps on dropdown
   const dropdownRef = useRef(null)
+  const inputRef = useRef(null)
 
   const {recentUrls, isLoading: urlsLoading, addRecentUrl} = useRecentUrls()
   const theme = useColorScheme()
@@ -156,6 +157,12 @@ const App: React.FC = () => {
   const keyExtractor = useCallback((item, index) => {
     return `${item.type}-${item.format}-${item.url.slice(-40)}-${index}`
   }, [])
+
+  const focusInput = useCallback(() => {
+    if (inputRef.current) {
+      inputRef.current?.focus?.()
+    }
+  }, [inputRef])
 
   // Render each media item using our new MediaCard component
   const renderItem = useCallback(
@@ -254,6 +261,7 @@ const App: React.FC = () => {
         <View style={styles.searchContainer}>
           <View style={[styles.inputWrapper, {backgroundColor: theme === "dark" ? "#8F8E8E58" : "#E0E0EFFF"}]}>
             <TextInput
+              ref={inputRef}
               style={[styles.input, {color: theme === "dark" ? "#FFC814FF" : "#4A4A4AFF"}]}
               placeholder="Enter website URL"
               value={url}
@@ -366,25 +374,27 @@ const App: React.FC = () => {
             />
           </View>
         ) : (
-          <View style={styles.emptyContainer}>
-            <Ionicons
-              name="images-outline"
-              size={80}
-              color={theme === "light" ? "#8F8F8FFF" : "#cdcd"}
-              style={styles.shadow}
-            />
-            <Text
-              style={[
-                styles.emptyText,
-                styles.shadow,
-                {
-                  color: theme === "dark" ? "#C8C8C8FF" : "#4A4A4AFF"
-                }
-              ]}
-            >
-              Enter a website URL to extract images and videos
-            </Text>
-          </View>
+          <TouchableWithoutFeedback onPress={focusInput}>
+            <View style={styles.emptyContainer}>
+              <Ionicons
+                name="images-outline"
+                size={80}
+                color={theme === "light" ? "#8F8F8FFF" : "#cdcd"}
+                style={styles.shadow}
+              />
+              <Text
+                style={[
+                  styles.emptyText,
+                  styles.shadow,
+                  {
+                    color: theme === "dark" ? "#C8C8C8FF" : "#4A4A4AFF"
+                  }
+                ]}
+              >
+                Enter a website URL to extract images and videos
+              </Text>
+            </View>
+          </TouchableWithoutFeedback>
         )}
         <DraggableToolbar>
           <Actions />
@@ -467,7 +477,12 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#FFC312",
     color: "#FFC8148A",
-    marginLeft: 10
+    marginLeft: 10,
+    shadowColor: "#cdcd",
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2
   },
   historyButton: {
     width: 36,
