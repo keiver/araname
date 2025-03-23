@@ -40,6 +40,7 @@ import DraggableToolbar from "./DraggableToolbar"
 import {GestureHandlerRootView} from "react-native-gesture-handler"
 import InvisibleWebViewExtractor from "./Extractor"
 import NativeAdCard from "./ads/NativeAdCard"
+import compressAndDownloadFiles from "./useZip"
 
 const versionFile = require("./app.json")
 
@@ -59,6 +60,8 @@ const App: React.FC = () => {
     extractionInProgress,
     cleanMediaItems
   } = useMediaExtractor()
+
+  const [zipProgress, setZipProgress] = useState(0)
 
   // Selection state
   const [selectedItems, setSelectedItems] = useState<Record<string, boolean>>({})
@@ -158,8 +161,10 @@ const App: React.FC = () => {
       try {
         await Haptics?.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
       } catch (error) {}
+
+      setZipProgress(0) // Reset progress when toggling selection
     },
-    [selectionMode, selectedItems]
+    [selectionMode, selectedItems, setZipProgress]
   )
 
   const clearSelection = useCallback(() => {
@@ -167,7 +172,7 @@ const App: React.FC = () => {
     setSelectionMode(false)
   }, [])
 
-  const selectAllItems = useCallback(() => {
+  const selectAllItems = useCallback(async () => {
     // Check if all non-ad items are already selected
     const totalSelectableItems = filteredMedia.filter(item => item.type !== "ad" && item.url).length
     const currentlySelectedCount = Object.values(selectedItems).filter(Boolean).length
@@ -176,6 +181,10 @@ const App: React.FC = () => {
     if (currentlySelectedCount === totalSelectableItems && totalSelectableItems > 0) {
       setSelectionMode(true)
       setSelectedItems([] as any)
+
+      try {
+        await Haptics?.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+      } catch (error) {}
 
       return
     }
@@ -189,18 +198,24 @@ const App: React.FC = () => {
     })
     setSelectedItems(newSelection)
     setSelectionMode(true)
+    try {
+      await Haptics?.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+    } catch (error) {}
   }, [filteredMedia, selectedItems, clearSelection, setSelectionMode, setSelectedItems])
 
   const downloadSelectedItems = useCallback(() => {
-    Object.keys(selectedItems).forEach(itemUrl => {
-      const item = media.find(m => m.url === itemUrl)
-      if (item && selectedItems[itemUrl]) {
-        downloadMedia(item)
-      }
+    setZipProgress(0)
+
+    const urls = filteredMedia
+      .filter(item => selectedItems[item.url] && item.url)
+      ?.map(item => item.url)
+      .filter(Boolean) as string[]
+
+    compressAndDownloadFiles(urls, `araname-downloaded-resources-${Date.now()}.zip`, r => {
+      console.log("Download progress", r)
+      setZipProgress(r)
     })
-    // Optional: clear selection after download initiated
-    // clearSelection()
-  }, [selectedItems, media, downloadMedia])
+  }, [selectedItems, compressAndDownloadFiles, setZipProgress])
 
   // Effect to handle URL extraction when it comes from recent URLs
   useEffect(() => {
@@ -500,7 +515,7 @@ const App: React.FC = () => {
                   <View style={styles.selectionActions}>
                     <TouchableOpacity
                       style={styles.selectionActionButton}
-                      onPress={downloadSelectedItems}
+                      onPress={uiState.selectedCount === 0 ? () => {} : downloadSelectedItems}
                       disabled={uiState.selectedCount === 0}
                     >
                       <Ionicons
@@ -508,7 +523,16 @@ const App: React.FC = () => {
                         size={22}
                         color={uiState.selectedCount === 0 ? "#CCCCCC" : "#FFC814FF"}
                       />
-                      <Text style={styles.selectionActionText}>Download</Text>
+                      <Text
+                        style={[
+                          styles.selectionActionText,
+                          {
+                            color: uiState.selectedCount === 0 ? "#CCCCCC" : "#FFC814FF"
+                          }
+                        ]}
+                      >
+                        Download {zipProgress >= 0 ? <Text>{zipProgress?.toFixed(0) || ""}%</Text> : ""}
+                      </Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.selectionActionButton} onPress={selectAllItems}>
                       <Ionicons name="checkmark-circle" size={22} color="#FFC814FF" />

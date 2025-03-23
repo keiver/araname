@@ -12,9 +12,12 @@ install! 'cocoapods',
   :deterministic_uuids => false
 
 prepare_react_native_project!
+# use_modular_headers!
 
 target 'araname' do
   use_expo_modules!
+
+  pod 'ZipArchive', :modular_headers => true
 
   if ENV['EXPO_USE_COMMUNITY_AUTOLINKING'] == '1'
     config_command = ['node', '-e', "process.argv=['', '', 'config'];require('@react-native-community/cli').run()"];

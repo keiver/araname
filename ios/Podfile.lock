@@ -1335,6 +1335,28 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
+  - react-native-zip-stream (1.0.7):
+    - DoubleConversion
+    - glog
+    - hermes-engine
+    - RCT-Folly (= 2024.11.18.00)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - Yoga
+    - ZipArchive
   - React-NativeModulesApple (0.78.0):
     - glog
     - hermes-engine
@@ -1622,6 +1644,28 @@ PODS:
     - React-logger (= 0.78.0)
     - React-perflogger (= 0.78.0)
     - React-utils (= 0.78.0)
+  - ReactNativeFileAccess (3.1.1):
+    - DoubleConversion
+    - glog
+    - hermes-engine
+    - RCT-Folly (= 2024.11.18.00)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - Yoga
+    - ZIPFoundation
   - RNCAsyncStorage (1.23.1):
     - DoubleConversion
     - glog
@@ -1857,6 +1901,8 @@ PODS:
     - Yoga
   - SocketRocket (0.7.1)
   - Yoga (0.0.0)
+  - ZipArchive (1.4.0)
+  - ZIPFoundation (0.9.19)
 
 DEPENDENCIES:
   - boost (from `../node_modules/react-native/third-party-podspecs/boost.podspec`)
@@ -1914,6 +1960,7 @@ DEPENDENCIES:
   - React-Mapbuffer (from `../node_modules/react-native/ReactCommon`)
   - React-microtasksnativemodule (from `../node_modules/react-native/ReactCommon/react/nativemodule/microtasks`)
   - react-native-webview (from `../node_modules/react-native-webview`)
+  - react-native-zip-stream (from `../node_modules/react-native-zip-stream`)
   - React-NativeModulesApple (from `../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
   - React-perflogger (from `../node_modules/react-native/ReactCommon/reactperflogger`)
   - React-performancetimeline (from `../node_modules/react-native/ReactCommon/react/performance/timeline`)
@@ -1942,6 +1989,7 @@ DEPENDENCIES:
   - ReactAppDependencyProvider (from `build/generated/ios`)
   - ReactCodegen (from `build/generated/ios`)
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
+  - ReactNativeFileAccess (from `../node_modules/react-native-file-access`)
   - "RNCAsyncStorage (from `../node_modules/@react-native-async-storage/async-storage`)"
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
   - RNGoogleMobileAds (from `../node_modules/react-native-google-mobile-ads`)
@@ -1949,12 +1997,15 @@ DEPENDENCIES:
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNSVG (from `../node_modules/react-native-svg`)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
+  - ZipArchive
 
 SPEC REPOS:
   trunk:
     - Google-Mobile-Ads-SDK
     - GoogleUserMessagingPlatform
     - SocketRocket
+    - ZipArchive
+    - ZIPFoundation
 
 EXTERNAL SOURCES:
   boost:
@@ -2064,6 +2115,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/react/nativemodule/microtasks"
   react-native-webview:
     :path: "../node_modules/react-native-webview"
+  react-native-zip-stream:
+    :path: "../node_modules/react-native-zip-stream"
   React-NativeModulesApple:
     :path: "../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios"
   React-perflogger:
@@ -2120,6 +2173,8 @@ EXTERNAL SOURCES:
     :path: build/generated/ios
   ReactCommon:
     :path: "../node_modules/react-native/ReactCommon"
+  ReactNativeFileAccess:
+    :path: "../node_modules/react-native-file-access"
   RNCAsyncStorage:
     :path: "../node_modules/@react-native-async-storage/async-storage"
   RNGestureHandler:
@@ -2191,6 +2246,7 @@ SPEC CHECKSUMS:
   React-Mapbuffer: 3c11cee7737609275c7b66bd0b1de475f094cedf
   React-microtasksnativemodule: 843f352b32aacbe13a9c750190d34df44c3e6c2c
   react-native-webview: 9a1e1057b172d6b2a4485eb00ba81c1a420094cd
+  react-native-zip-stream: 2711aa9e0ab8d0185f8a4ca67a274477ac9ef9d8
   React-NativeModulesApple: 88433b6946778bea9c153e27b671de15411bf225
   React-perflogger: 9e8d3c0dc0194eb932162812a168aa5dc662f418
   React-performancetimeline: 5a2d6efef52bdcefac079c7baa30934978acd023
@@ -2219,6 +2275,7 @@ SPEC CHECKSUMS:
   ReactAppDependencyProvider: a1fb08dfdc7ebc387b2e54cfc9decd283ed821d8
   ReactCodegen: 008c319179d681a6a00966edfc67fda68f9fbb2e
   ReactCommon: 0c097b53f03d6bf166edbcd0915da32f3015dd90
+  ReactNativeFileAccess: 4ffba7b164bff3f9505d18ab04a763e46e8921a3
   RNCAsyncStorage: 6c619a6d28e188d33efbd39df77a2c3933d9ca72
   RNGestureHandler: b47f1bb0dfc2dcc09d5f3a16f951c3f493d085b6
   RNGoogleMobileAds: 2b0a79f6347eceed3d0654d15fb9c47405a0dbf5
@@ -2227,7 +2284,9 @@ SPEC CHECKSUMS:
   RNSVG: 8126581b369adf6a0004b6a6cab1a55e3002d5b0
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   Yoga: afd04ff05ebe0121a00c468a8a3c8080221cb14c
+  ZipArchive: e25a4373192673e3229ac8d6e9f64a3e5713c966
+  ZIPFoundation: b8c29ea7ae353b309bc810586181fd073cb3312c
 
-PODFILE CHECKSUM: b06dd6206222073ebc20c0dd4e0ff3ad191324e2
+PODFILE CHECKSUM: 860fcc87fc7031076441d84578f43b64d1bd7000
 
 COCOAPODS: 1.16.2
