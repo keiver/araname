@@ -15,7 +15,8 @@ import {
   Keyboard,
   LogBox,
   useColorScheme,
-  Alert
+  Alert,
+  Linking
 } from "react-native"
 import {StatusBar} from "expo-status-bar"
 import * as Haptics from "expo-haptics"
@@ -227,7 +228,15 @@ const App: React.FC = () => {
 
   const downloadSelectedItems = useCallback(async () => {
     if (!isDevelopmentEnvironment(recentUrls?.[0]?.url)) {
-      Alert.alert("Error", "Media download is disabled for non development environments.")
+      Alert.alert("Error", "Media download is disabled for non development environments.", [
+        {text: "OK"},
+        {
+          text: "Read More",
+          onPress: () => {
+            Linking.openURL("https://keiver.dev/lab/araname#media-download-policy")
+          }
+        }
+      ])
       return
     }
 
@@ -336,7 +345,15 @@ const App: React.FC = () => {
   const handleDownload = useCallback(
     item => {
       if (!isDevelopmentEnvironment(recentUrls?.[0]?.url)) {
-        Alert.alert("Error", "Media download is disabled for non development environments.")
+        Alert.alert("Error", "Media download is disabled for non development environments.", [
+          {text: "OK"},
+          {
+            text: "Read More",
+            onPress: () => {
+              Linking.openURL("https://keiver.dev/lab/araname#media-download-policy")
+            }
+          }
+        ])
         return
       }
 
