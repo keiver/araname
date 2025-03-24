@@ -19,7 +19,7 @@ import Left from "./assets/left.svg"
 // Initial dimensions - will be updated when orientation changes
 const initialDimensions = Dimensions.get("window")
 const TOOLBAR_HEIGHT = 140
-const VISIBLE_PORTION = 26
+const VISIBLE_PORTION = 32
 const BOTTOM_AD_BANNER_HEIGHT = 50
 
 const SPRING_CONFIG = {
@@ -277,7 +277,13 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     display: "flex",
     justifyContent: "center",
-    alignItems: "center"
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    shadowColor: "#fff",
+    shadowOffset: {width: 13, height: 16},
+    shadowOpacity: 0.9,
+    shadowRadius: 14,
+    elevation: 0
     // paddingTop: 40
   },
   closeButton: {

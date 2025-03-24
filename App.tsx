@@ -42,6 +42,7 @@ import InvisibleWebViewExtractor from "./Extractor"
 import NativeAdCard from "./ads/NativeAdCard"
 import compressAndDownloadFiles from "./useZip"
 import AdBanner, {AdBannerRef} from "./ads/AdBanner"
+import SettingsModal from "./Settings"
 
 const versionFile = require("./app.json")
 
@@ -101,7 +102,7 @@ const App: React.FC = () => {
 
   // Make sure we use integer values to avoid pixel misalignment
   const ITEM_WIDTH = Math.floor((ADJUSTED_WIDTH - GRID_SPACING * (GRID_COLUMNS - 1)) / GRID_COLUMNS)
-
+  const [settingsVisible, setSettingsVisible] = useState(false)
   // Filter state
   const [filterType, setFilterType] = useState<string>("all")
 
@@ -398,13 +399,22 @@ const App: React.FC = () => {
 
   const version_string = `v${versionFile.expo.version}` || "1"
   // console.log("%cApp.tsx:219 filteredMedia", "color: #007acc;", filteredMedia)
+
+  const handleCloseSettings = useCallback(() => {
+    setSettingsVisible(false)
+  }, [setSettingsVisible])
+
+  const handleOpenSettings = useCallback(() => {
+    setSettingsVisible(true)
+  }, [setSettingsVisible])
+
   return (
     <GestureHandlerRootView style={{flex: 1, backgroundColor: "transparent"}}>
       <SafeAreaView
         style={[
           styles.container,
           {
-            backgroundColor: theme === "dark" ? "#3d3d3d" : "#cdcd"
+            backgroundColor: theme === "dark" ? "#3d3d3d" : "#ffffff"
           }
         ]}
       >
@@ -437,7 +447,7 @@ const App: React.FC = () => {
               }
             ]}
           >
-            araname - web media extractor
+            Araname - Web Media Inspector
           </Text>
           <Text
             style={{
@@ -459,7 +469,7 @@ const App: React.FC = () => {
             <TextInput
               ref={inputRef}
               style={[styles.input, {color: theme === "dark" ? "#FFC814FF" : "#4A4A4AFF"}]}
-              placeholder="Enter website URL"
+              placeholder="https://example.com"
               value={url}
               onChangeText={setUrl}
               autoCapitalize="none"
@@ -633,14 +643,14 @@ const App: React.FC = () => {
             )}
           </View>
         ) : (
-          <TouchableWithoutFeedback onPress={focusInput}>
-            <View style={styles.emptyContainer}>
-              <Ionicons
-                name="images-outline"
-                size={80}
-                color={theme === "light" ? "#8F8F8FFF" : "#cdcd"}
-                style={styles.shadow}
-              />
+          <View style={styles.emptyContainer}>
+            <Ionicons
+              name="images-outline"
+              size={80}
+              color={theme === "light" ? "#8F8F8FFF" : "#CCDDCC"}
+              style={styles.shadow}
+            />
+            <TouchableWithoutFeedback onPress={focusInput}>
               <Text
                 style={[
                   styles.emptyText,
@@ -652,11 +662,12 @@ const App: React.FC = () => {
               >
                 Enter a website URL to extract images and videos
               </Text>
-            </View>
-          </TouchableWithoutFeedback>
+            </TouchableWithoutFeedback>
+          </View>
         )}
         <DraggableToolbar>
-          <Actions />
+          <Actions onSettings={handleOpenSettings} />
+          <SettingsModal appVersion={version_string} visible={settingsVisible} onClose={handleCloseSettings} />
         </DraggableToolbar>
         {/* Always include the WebView extractor when extraction is in progress */}
         {extractionInProgress && (
@@ -664,7 +675,7 @@ const App: React.FC = () => {
             url={formatUrl(url)}
             onMediaExtracted={handleWebViewResults}
             onError={() => {
-              setLoading(false)
+              console.log("Error extracting media")
             }}
           />
         )}

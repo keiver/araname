@@ -39,7 +39,8 @@
     "react-native-svg": "^15.11.2",
     "react-native-webview": "13.12.5",
     "react-native-zip-stream": "^1.0.7",
-    "url-join": "^5.0.0"
+    "url-join": "^5.0.0",
+    "expo-splash-screen": "~0.29.22"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

@@ -159,7 +159,7 @@ const NativeAdCard: React.FC<NativeAdCardProps> = ({itemWidth, itemHeight, onAdL
         style={[
           styles.infoContainer,
           {
-            backgroundColor: theme === "dark" ? "#171717B4" : "#130E0EEF",
+            backgroundColor: theme === "dark" ? "#C1C1C1B4" : "#FFFFFFE3",
             width: actualWidth + 1,
             marginLeft: -2,
             position: "absolute",
@@ -170,7 +170,7 @@ const NativeAdCard: React.FC<NativeAdCardProps> = ({itemWidth, itemHeight, onAdL
         <View style={styles.textContainer}>
           <NativeAsset assetType={NativeAssetType.HEADLINE}>
             <Text
-              style={[styles.headline, {color: theme === "dark" ? "#F5F5F5C9" : "#2e282ae6"}]}
+              style={[styles.headline, {color: theme === "dark" ? "#F5F5F5C9" : "#212121E6"}]}
               numberOfLines={1}
               ellipsizeMode="tail"
             >
