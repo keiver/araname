@@ -49,7 +49,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({currentFilter, onFilterChan
     <View style={styles.container}>
       {resultCount !== undefined && (
         <Text style={styles.resultsCount}>
-          {resultCount} {resultCount === 1 ? "item" : "items"} found
+          {resultCount} {resultCount === 1 ? "item" : "items"}
         </Text>
       )}
 

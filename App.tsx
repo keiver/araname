@@ -458,55 +458,29 @@ const App: React.FC = () => {
         style={[
           styles.container,
           {
+            position: "relative",
             backgroundColor: theme === "dark" ? "#3d3d3d" : "#CCDDCC"
           }
         ]}
       >
         <StatusBar style={theme === "dark" ? "light" : "dark"} backgroundColor="transparent" translucent={true} />
 
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "center",
-            alignItems: "flex-start",
-            margin: 4
-          }}
+        <Text
+          style={[
+            {
+              width: "100%",
+              textAlign: "center",
+              opacity: 0.7,
+              marginBottom: 5,
+              marginTop: 10
+              // marginLeft: 22,
+              // backgroundColor: "#FFFFFF80"
+            },
+            {color: theme === "dark" ? "#FFC814FF" : "#4A4A4AFF"}
+          ]}
         >
-          <Text
-            style={[
-              styles.modalTitle,
-              {
-                color: theme === "dark" ? "#C8C8C8FF" : "#4A4A4AFF",
-                textShadowColor: theme === "dark" ? "#767676FF" : "#4A4A4A2F",
-                textShadowOffset: {width: 0, height: 1},
-                textShadowRadius: 2,
-                fontSize: 14,
-                position: "relative",
-                fontWeight: "500",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                textAlign: "center",
-                margin: 4
-              }
-            ]}
-          >
-            Araname - Web Media Inspector
-          </Text>
-          <Text
-            style={{
-              marginVertical: 21,
-              fontSize: 12,
-              color: theme === "dark" ? "#C8C8C8FF" : "#4A4A4AFF"
-
-              // fontWeight: "600"
-            }}
-          >
-            {" "}
-            {version_string}
-          </Text>
-        </View>
-
+          Araname - Web Resource Inspector
+        </Text>
         {/* Search input */}
         <View style={styles.searchContainer}>
           <View style={[styles.inputWrapper, {backgroundColor: theme === "dark" ? "#8F8E8E58" : "#E0E0EFFF"}]}>
@@ -545,7 +519,6 @@ const App: React.FC = () => {
             )}
           </TouchableOpacity>
         </View>
-
         {/* Recent URLs dropdown with overlay for tapping outside */}
         {showRecentUrls && (
           <>
@@ -559,13 +532,13 @@ const App: React.FC = () => {
                 styles.recentUrlsContainer,
                 {
                   width: width - 108,
-                  backgroundColor: theme === "dark" ? "#5F5F5FF9" : "#E0E0EFFF",
-                  borderColor: theme === "dark" ? "#00000029" : "#00000029",
+                  backgroundColor: theme === "dark" ? "#5F5F5FF9" : "#FFFFFFFB",
+                  borderColor: theme === "dark" ? "#00000029" : "#FFFFFF29",
                   borderWidth: 1,
                   shadowColor: theme === "dark" ? "#00000029" : "#E0E0EFFF",
                   shadowOffset: {width: 0, height: 3},
                   shadowOpacity: 0.2,
-                  shadowRadius: 5,
+                  shadowRadius: 25,
                   elevation: 10 // Increased elevation for Android
                 }
               ]}
@@ -581,7 +554,6 @@ const App: React.FC = () => {
             </View>
           </>
         )}
-
         {/* Results grid */}
         {uiState.hasResults ? (
           <View style={styles.resultsContainer}>
@@ -771,6 +743,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 16,
     alignItems: "center"
+    // marginTop: -18
   },
   dropdownOverlay: {
     position: "absolute",

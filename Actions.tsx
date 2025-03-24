@@ -18,7 +18,7 @@ interface ActionsProps {
 const Actions: React.FC<ActionsProps> = ({
   removeAdsText = "Remove Ads",
   restorePurchasesText = "Restore Purchases",
-  settingsText = "Settings",
+  settingsText = "About",
   onRemoveAds,
   onRestorePurchases,
   onSettings

@@ -105,7 +105,7 @@ export const ReusableModal: React.FC<ReusableModalProps> = ({
 }
 
 const {width, height} = Dimensions.get("window")
-
+const isTablet = (Platform.OS === "ios" && Platform.isPad) || (Platform.OS === "android" && width / height < 1.6)
 const styles = StyleSheet.create({
   blurContainer: {
     flex: 1,
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
   container: {
     height: height * 0.8,
     overflow: "hidden",
-    width: "90%",
+    width: isTablet ? "30%" : "90%",
     borderRadius: 36,
     marginHorizontal: "auto"
   },
