@@ -1,4 +1,4 @@
-import React, {useEffect, useRef} from "react"
+import React from "react"
 import {
   Modal,
   View,
@@ -6,13 +6,12 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Animated,
   Dimensions,
   Platform,
-  SafeAreaView,
   useColorScheme
 } from "react-native"
 import {Ionicons} from "@expo/vector-icons"
+import {BlurView} from "expo-blur"
 
 // Get screen dimensions
 const {width, height} = Dimensions.get("window")
@@ -28,75 +27,111 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   visible,
   onClose,
   appVersion = "1.0.0",
-  appDescription = "A simple tool for finding and downloading media resources from any website. Enter a URL and get instant access to all available images and videos. \n\nThis app is not a video stream downloader, but a general media file inspector for websites."
+  appDescription = "A simple and professional tool for web developers and designers to inspect, analyze, and test media resources on websites. Identify optimization opportunities, analyze resource dimensions, and verify content implementation across different environments."
 }) => {
   const theme = useColorScheme()
+  const isDark = theme === "dark"
+
   return (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-      supportedOrientations={["portrait"]}
-      statusBarTranslucent={true}
-      shouldRasterizeIOS={true}
-      hardwareAccelerated={true}
-      visible={visible}
-    >
-      <SafeAreaView style={styles.container}>
-        <View style={styles.overlay}>
-          <Animated.View
-            style={[
-              styles.modalContainer,
-              {
-                backgroundColor: theme === "dark" ? "#333" : "#FFFFFFFD"
-              }
-            ]}
-          >
-            {/* Header with title and close button */}
+    <ScrollView style={styles.content}>
+      {/* App Description Section */}
+      <View style={styles.section}>
+        <Text
+          style={[
+            styles.sectionTitle,
+            {
+              color: isDark ? "#FFFFFF" : "#00000093",
+              textShadowColor: "#C8C8C854",
+              textShadowOffset: {width: 0, height: 1},
+              textShadowRadius: 1
+            }
+          ]}
+        >
+          About
+        </Text>
+        <Text style={[styles.descriptionText, {color: isDark ? "#CCCCCC" : "#666"}]}>{appDescription}</Text>
+      </View>
 
-            <View style={styles.header}>
-              <Text
-                style={[
-                  styles.title,
-                  {
-                    color: theme === "dark" ? "#FFFFFFA8" : "#333"
-                  }
-                ]}
-              >
-                Settings
-              </Text>
-              <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                <Ionicons name="close-circle" size={30} color="#FFC312" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.content}>
-              {/* Version Info Section */}
-              <View style={styles.section}>
-                {/* <Text style={styles.sectionTitle}>App Information</Text> */}
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Version</Text>
-                  <Text style={styles.infoValue}>{appVersion}</Text>
-                </View>
-              </View>
-              {/* App Description Section */}
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>About</Text>
-                <Text style={styles.descriptionText}>{appDescription}</Text>
-              </View>
-
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Disclaimer</Text>
-                <Text style={styles.descriptionText}>
-                  Please note usually the media of websites belong to their owners. Check you have proper usage rights.
-                  We claim no ownership of any media found using this tool.
-                </Text>
-              </View>
-            </ScrollView>
-          </Animated.View>
+      <View style={styles.section}>
+        <Text
+          style={[
+            styles.sectionTitle,
+            {
+              color: isDark ? "#FFFFFF" : "#00000093",
+              textShadowColor: "#C8C8C854",
+              textShadowOffset: {width: 0, height: 1},
+              textShadowRadius: 1
+            }
+          ]}
+        >
+          Intended Usage & Legal Notice
+        </Text>
+        <View style={{flexDirection: "row", alignItems: "center", marginBottom: 12}}>
+          <Ionicons
+            name="information-circle"
+            size={22}
+            color={isDark ? "#FFC814FF" : "#FFC814FF"}
+            style={{marginRight: 8}}
+          />
+          <Text style={[styles.descriptionText, {color: isDark ? "#CCCCCC" : "#666", flex: 1}]}>
+            Araname is intended for professional web development, testing, and optimization purposes only.
+          </Text>
         </View>
-      </SafeAreaView>
-    </Modal>
+
+        <View style={{flexDirection: "row", alignItems: "flex-start", marginBottom: 12}}>
+          <Ionicons
+            name="alert-circle"
+            size={22}
+            color={isDark ? "#FF3B30" : "#FF3B30"}
+            style={{marginRight: 8, marginTop: 2}}
+          />
+          <Text style={[styles.descriptionText, {color: isDark ? "#FF6B60" : "#FF3B30", flex: 1, fontWeight: "500"}]}>
+            DO NOT DOWNLOAD COPYRIGHTED MATERIAL
+          </Text>
+        </View>
+
+        <Text style={[styles.descriptionText, {color: isDark ? "#CCCCCC" : "#666"}]}>
+          All media assets accessed through this tool are likely protected by copyright laws. Downloading, storing, or
+          distributing these assets without permission is ILLEGAL and may result in legal action against you.
+        </Text>
+
+        <View style={{flexDirection: "row", alignItems: "center", marginTop: 12}}>
+          <Ionicons name="shield-checkmark" size={22} color={isDark ? "#4CD964" : "#4CD964"} style={{marginRight: 8}} />
+          <Text style={[styles.descriptionText, {color: isDark ? "#CCCCCC" : "#666", flex: 1}]}>
+            You are solely responsible for ensuring you have proper rights or permissions before saving or using any
+            media resources.
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text
+          style={[
+            styles.sectionTitle,
+            {
+              color: isDark ? "#FFFFFF" : "#00000093",
+              textShadowColor: "#C8C8C854",
+              textShadowOffset: {width: 0, height: 1},
+              textShadowRadius: 1
+            }
+          ]}
+        >
+          Developer Resources
+        </Text>
+        <Text style={[styles.descriptionText, {color: isDark ? "#CCCCCC" : "#666"}]}>
+          For optimal web resource inspection, we recommend using this tool alongside other web development tools such
+          as browser inspectors, performance testing suites, and accessibility checkers to ensure comprehensive analysis
+          of your web projects.
+        </Text>
+      </View>
+
+      <View style={styles.section}>
+        <View style={styles.infoRow}>
+          <Text style={[styles.infoLabel, {color: isDark ? "#BBBBBB" : "#969696FF"}]}>Version</Text>
+          <Text style={[styles.infoValue, {color: isDark ? "#DDDDDD" : "#7C7C7CFF"}]}>{appVersion}</Text>
+        </View>
+      </View>
+    </ScrollView>
   )
 }
 
@@ -104,21 +139,29 @@ const tab = Platform.OS === "ios" && Platform.isPad
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1
-  },
-  overlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0)",
-    justifyContent: "center"
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0)" // Re-added background color
+  },
+  blurContainer: {
+    width: tab ? "60%" : "90%",
+    maxWidth: 500,
+    maxHeight: height * 0.8,
+    borderRadius: 36,
+    overflow: "hidden"
   },
   modalContainer: {
-    height: tab ? height * 0.4 : height * 0.5,
-    width: tab ? "60%" : "90%",
-    maxWidth: 400,
+    width: "100%",
+    height: "100%",
     borderRadius: 36,
-    marginHorizontal: "auto",
     overflow: "hidden",
-    padding: 16,
     shadowColor: "#000",
     shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.3,
@@ -130,35 +173,32 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     padding: 16,
-    borderBottomWidth: 0,
-    borderBottomColor: "#9E2020FF"
+    paddingTop: 24,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "rgba(0,0,0,0.1)"
   },
   title: {
     fontSize: 20,
-    fontWeight: "400",
-    color: "#333"
+    fontWeight: "600"
   },
   closeButton: {
     padding: 5
   },
   content: {
-    flex: 1
+    flex: 1,
+    padding: 15
   },
   section: {
-    padding: 16,
-    borderBottomWidth: 0,
-    borderBottomColor: "#f0f0f0"
+    marginBottom: 24
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "600",
-    marginBottom: 12,
-    color: "#7C7C7CFF"
+    marginBottom: 12
   },
   descriptionText: {
     fontSize: 16,
-    lineHeight: 24,
-    color: "#666"
+    lineHeight: 24
   },
   infoRow: {
     flexDirection: "row",
@@ -166,36 +206,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8
   },
   infoLabel: {
-    fontSize: 16,
-    color: "#969696FF"
+    fontSize: 16
   },
   infoValue: {
     fontSize: 16,
-    color: "#7C7C7CFF",
     fontWeight: "500"
-  },
-  settingRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0"
-  },
-  settingTextContainer: {
-    flex: 1
-  },
-  settingLabel: {
-    fontSize: 16,
-    color: "#7C7C7CFF",
-    marginBottom: 4
-  },
-  settingDescription: {
-    fontSize: 14,
-    color: "#999"
-  },
-  settingControl: {
-    marginLeft: 8
   }
 })
 

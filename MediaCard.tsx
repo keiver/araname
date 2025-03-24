@@ -6,15 +6,15 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Image,
-  Dimensions,
   Platform,
-  Alert,
-  useColorScheme
+  useColorScheme,
+  Linking
 } from "react-native"
 import {Ionicons} from "@expo/vector-icons"
 import {SvgUri} from "react-native-svg"
 import axios from "axios"
 import * as Clipboard from "expo-clipboard"
+import {MediaInfoModal} from "./MediaInfoModal" // Import our new modal
 
 const MIN_ITEM_HEIGHT = 150
 const MAX_ITEM_HEIGHT = 250
@@ -33,11 +33,11 @@ interface MediaCardProps {
   }
   onDownload: (item: any) => void
   onCancel: (url: string) => void
-  itemWidth: number // New prop
-  isLastInRow?: boolean // Optional prop to handle last item in row
-  isSelected?: boolean // Whether this item is selected
-  onSelectToggle?: (url: string) => void // Callback when selection is toggled
-  selectionMode?: boolean // Whether the app is in selection mode
+  itemWidth: number
+  isLastInRow?: boolean
+  isSelected?: boolean
+  onSelectToggle?: (url: string) => void
+  selectionMode?: boolean
 }
 
 export const MediaCard: React.FC<MediaCardProps> = ({
@@ -56,11 +56,22 @@ export const MediaCard: React.FC<MediaCardProps> = ({
   const [isLoading, setIsLoading] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
   const [copyMessage, setCopyMessage] = useState(false)
+  const [infoModalVisible, setInfoModalVisible] = useState(false) // State for modal visibility
 
   const isDownloading = downloadState?.status === "downloading"
   const isComplete = downloadState?.status === "complete"
   const isError = downloadState?.status === "error"
   const isSaving = downloadState?.status === "saving"
+
+  const openImageInBrowser = async (imageUrl: string) => {
+    const canOpen = await Linking.canOpenURL(imageUrl)
+
+    if (canOpen) {
+      await Linking.openURL(imageUrl)
+    } else {
+      console.error("Cannot open URL: " + imageUrl)
+    }
+  }
 
   // Handle copy URI action or toggle selection
   const handleCopyUri = useCallback(async () => {
@@ -90,7 +101,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({
     }
   }, [item.url, onSelectToggle])
 
-  // Extract file extension from filename
+  // Get file extension from filename
   const getFileExtension = (filename: string): string => {
     const parts = filename.split(".")
     if (parts.length > 1) {
@@ -187,6 +198,11 @@ export const MediaCard: React.FC<MediaCardProps> = ({
 
   const theme = useColorScheme()
 
+  // Modified to show our modal instead of Alert
+  const openInfoModal = useCallback(() => {
+    setInfoModalVisible(true)
+  }, [])
+
   return (
     <View style={[styles.gridItem, {width: itemWidth}, isLastInRow && {marginRight: 0}]}>
       <View
@@ -232,10 +248,6 @@ export const MediaCard: React.FC<MediaCardProps> = ({
             </View>
           )}
 
-          {/* File extension badge */}
-          {/* <View style={styles.formatBadge}>
-            <Text style={styles.formatBadgeText}>{getFileExtension(item.filename) || "File"}</Text>
-          </View> */}
           {copyMessage && (
             <View style={styles.formatBadge}>
               <Text style={styles.formatBadgeText}>URL copied to clipboard</Text>
@@ -265,10 +277,6 @@ export const MediaCard: React.FC<MediaCardProps> = ({
               <Text style={styles.mediaSize}>{fileSizeInfo}</Text>
             )}
           </View>
-          {/* <View style={styles.detailsRow}>
-            <Text> </Text>
-            <Text style={{fontWeight: "thin", fontSize: 11}}>[{getFileExtension(item.filename) || ""}] </Text>
-          </View> */}
 
           {/* Action area */}
           {isDownloading ? (
@@ -310,17 +318,30 @@ export const MediaCard: React.FC<MediaCardProps> = ({
                 ) : (
                   <Ionicons name="cloud-download" size={22} color="#2e282ae6" />
                 )}
-                <Text style={styles.buttonText}>{isComplete ? " Downloaded" : " Download"}</Text>
               </TouchableOpacity>
 
-              {/* Copy URL button */}
-              {/* <TouchableOpacity style={styles.actionButton} onPress={handleCopyUri} activeOpacity={0.7}>
-                <Ionicons name="copy" size={22} color="#FFF" />
-              </TouchableOpacity> */}
+              <TouchableOpacity
+                style={[styles.actionButton]}
+                onPress={openInfoModal}
+                activeOpacity={isSelected ? 1 : 0.7}
+              >
+                <Ionicons name="information-circle-outline" size={22} color="#2e282ae6" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.actionButton]}
+                onPress={() => openImageInBrowser(item.url)}
+                activeOpacity={isSelected ? 1 : 0.7}
+              >
+                <Ionicons name="eye-outline" size={22} color="#2e282ae6" />
+              </TouchableOpacity>
             </View>
           )}
         </View>
       </View>
+
+      {/* Our new modal component */}
+      <MediaInfoModal visible={infoModalVisible} item={item} onClose={() => setInfoModalVisible(false)} />
     </View>
   )
 }
@@ -349,7 +370,6 @@ const styles = StyleSheet.create({
   },
   gridItem: {
     marginBottom: 16,
-    // marginHorizontal: GRID_SPACING / 2,
     shadowColor: "#000",
     shadowOffset: {width: 0, height: 1},
     shadowOpacity: 0.05,
@@ -358,7 +378,6 @@ const styles = StyleSheet.create({
     marginRight: 14 // Explicitly add right margin to match GRID_SPACING from App.tsx
   },
   mediaCard: {
-    // backgroundColor: "#FFFFFFDF",
     borderRadius: 23,
     overflow: "hidden",
     shadowColor: "#000",
@@ -480,13 +499,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     marginTop: 8,
-    paddingHorizontal: 1
+    paddingHorizontal: 1,
+    gap: 19
   },
   actionButton: {
-    height: 34,
-    width: "100%",
-    minWidth: 100,
-    maxWidth: 330,
+    height: 44,
+    width: 44,
     backgroundColor: "#FFC814FF",
     borderRadius: 122,
     justifyContent: "center",

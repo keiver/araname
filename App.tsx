@@ -14,7 +14,8 @@ import {
   Platform,
   Keyboard,
   LogBox,
-  useColorScheme
+  useColorScheme,
+  Alert
 } from "react-native"
 import {StatusBar} from "expo-status-bar"
 import * as Haptics from "expo-haptics"
@@ -44,6 +45,8 @@ import compressAndDownloadFiles from "./useZip"
 import AdBanner, {AdBannerRef} from "./ads/AdBanner"
 import SettingsModal from "./Settings"
 import useIAP from "./ads/usePurchaseManager"
+import MediaInfoModal from "./Modal"
+import {isDevelopmentEnvironment} from "./DomainClassifier"
 
 const versionFile = require("./app.json")
 
@@ -223,6 +226,11 @@ const App: React.FC = () => {
   }, [filteredMedia, selectedItems, clearSelection, setSelectionMode, setSelectedItems])
 
   const downloadSelectedItems = useCallback(async () => {
+    if (!isDevelopmentEnvironment(recentUrls?.[0]?.url)) {
+      Alert.alert("Error", "Media download is disabled for non development environments.")
+      return
+    }
+
     setZipProgress(0)
 
     const urls = filteredMedia
@@ -245,7 +253,15 @@ const App: React.FC = () => {
     } else {
       setInterCounter(prev => prev + 1) // Increment counter if ad wasn't shown
     }
-  }, [selectedItems, compressAndDownloadFiles, setZipProgress, setInterCounter, interCoutner])
+  }, [
+    selectedItems,
+    compressAndDownloadFiles,
+    setZipProgress,
+    setInterCounter,
+    interCoutner,
+    isDevelopmentEnvironment,
+    recentUrls
+  ])
 
   // Effect to handle URL extraction when it comes from recent URLs
   useEffect(() => {
@@ -319,9 +335,14 @@ const App: React.FC = () => {
   // Handle download action
   const handleDownload = useCallback(
     item => {
+      if (!isDevelopmentEnvironment(recentUrls?.[0]?.url)) {
+        Alert.alert("Error", "Media download is disabled for non development environments.")
+        return
+      }
+
       downloadMedia(item)
     },
-    [downloadMedia]
+    [downloadMedia, recentUrls, isDevelopmentEnvironment] // Ensure we have the latest recentUrls and environment check
   )
 
   // Handle canceling download
@@ -669,14 +690,16 @@ const App: React.FC = () => {
                   }
                 ]}
               >
-                Enter a website URL to extract images and videos
+                Enter a website URL to inspect resources
               </Text>
             </TouchableWithoutFeedback>
           </View>
         )}
         <DraggableToolbar>
           <Actions onSettings={handleOpenSettings} />
-          <SettingsModal appVersion={version_string} visible={settingsVisible} onClose={handleCloseSettings} />
+          <MediaInfoModal visible={settingsVisible} onClose={handleCloseSettings} title="Araname">
+            <SettingsModal appVersion={version_string} />
+          </MediaInfoModal>
         </DraggableToolbar>
         {/* Always include the WebView extractor when extraction is in progress */}
         {extractionInProgress && (
