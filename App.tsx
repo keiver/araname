@@ -476,7 +476,7 @@ const App: React.FC = () => {
               // marginLeft: 22,
               // backgroundColor: "#FFFFFF80"
             },
-            {color: theme === "dark" ? "#FFC814FF" : "#4A4A4AFF"}
+            {color: theme === "dark" ? "#FFC814FF" : "#000000FF"}
           ]}
         >
           Araname - Web Resource Inspector

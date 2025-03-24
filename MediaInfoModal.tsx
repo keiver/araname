@@ -614,7 +614,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 1230,
-    minWidth: width * 0.25,
     marginRight: 8
   },
   actionButtonText: {

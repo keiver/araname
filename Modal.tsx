@@ -38,7 +38,7 @@ export const ReusableModal: React.FC<ReusableModalProps> = ({
   const colors = useMemo(
     () => ({
       background: isDark ? "#1C1C1E" : "#F2F2F7CA",
-      card: isDark ? "#2C2C2E" : "#FFFFFFBC",
+      card: isDark ? "#2C2C2E" : "#FFFFFF93",
       text: isDark ? "#FFFFFF" : "#000000",
       subText: isDark ? "#8E8E93" : "#3C3C43",
       headerBackground: isDark ? "#1C1C1E" : "#F2F2F752",
@@ -106,15 +106,18 @@ export const ReusableModal: React.FC<ReusableModalProps> = ({
 
 const {width, height} = Dimensions.get("window")
 const isTablet = (Platform.OS === "ios" && Platform.isPad) || (Platform.OS === "android" && width / height < 1.6)
+const isPortrait = height > width
+
 const styles = StyleSheet.create({
   blurContainer: {
     flex: 1,
     justifyContent: "center"
   },
   container: {
-    height: height * 0.8,
+    height: isTablet && isPortrait ? height * 0.4 : height * 0.7,
     overflow: "hidden",
-    width: isTablet ? "30%" : "90%",
+    width: "100%",
+    maxWidth: isTablet ? 500 : 400,
     borderRadius: 36,
     marginHorizontal: "auto"
   },
