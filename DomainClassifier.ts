@@ -90,7 +90,6 @@ class DomainEnvironmentClassifier {
     ".jobs",
     ".mobi",
     ".app",
-    ".dev",
     ".tech",
     ".store",
     ".blog"
@@ -852,21 +851,21 @@ class DomainEnvironmentClassifier {
         result.reasons.push("Insufficient evidence, defaulting to production")
       }
 
-      // For React Native, check __DEV__ flag if available
-      try {
-        // @ts-ignore - Check for React Native's __DEV__ global
-        if (typeof __DEV__ !== "undefined" && __DEV__ === true) {
-          devEvidenceCount += 3
-          result.reasons.push("React Native __DEV__ flag is true")
-          result.isDevelopment = true
-          result.confidence = Math.min(100, result.confidence + 20)
-        }
-      } catch (error) {
-        // Ignore platform detection errors
-        if (debug) {
-          console.warn("[DomainClassifier] Unable to check React Native __DEV__ flag:", error)
-        }
-      }
+      // // For React Native, check __DEV__ flag if available
+      // try {
+      //   // @ts-ignore - Check for React Native's __DEV__ global
+      //   if (typeof __DEV__ !== "undefined" && __DEV__ === true) {
+      //     devEvidenceCount += 3
+      //     result.reasons.push("React Native __DEV__ flag is true")
+      //     result.isDevelopment = true
+      //     result.confidence = Math.min(100, result.confidence + 20)
+      //   }
+      // } catch (error) {
+      //   // Ignore platform detection errors
+      //   if (debug) {
+      //     console.warn("[DomainClassifier] Unable to check React Native __DEV__ flag:", error)
+      //   }
+      // }
 
       // Cache the result if memoization is enabled
       if (enableMemoization) {

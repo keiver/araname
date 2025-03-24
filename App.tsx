@@ -496,7 +496,7 @@ const App: React.FC = () => {
             <TextInput
               ref={inputRef}
               style={[styles.input, {color: theme === "dark" ? "#FFC814FF" : "#4A4A4AFF"}]}
-              placeholder="https://example.com"
+              placeholder="https://localhost"
               value={url}
               onChangeText={setUrl}
               autoCapitalize="none"
@@ -746,8 +746,8 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#4A4A4AFF",
     textAlign: "center",
-    marginTop: 16,
-    marginBottom: 16
+    marginTop: 1,
+    marginBottom: 1
   },
   searchContainer: {
     flexDirection: "row",
@@ -780,7 +780,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     height: 50,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     fontSize: 16,
     color: "#FFC312",
     backgroundColor: "transparent"
