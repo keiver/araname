@@ -28,7 +28,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   visible,
   onClose,
   appVersion = "1.0.0",
-  appDescription = "A simple tool for finding and downloading media resources from any website. Enter a URL and get instant access to all available images and videos."
+  appDescription = "A simple tool for finding and downloading media resources from any website. Enter a URL and get instant access to all available images and videos. \n\nThis app is not a video stream downloader, but a general media file inspector for websites."
 }) => {
   const theme = useColorScheme()
   return (
@@ -89,6 +89,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 <Text style={styles.sectionTitle}>Disclaimer</Text>
                 <Text style={styles.descriptionText}>
                   Please note usually the media of websites belong to their owners. Check you have proper usage rights.
+                  We claim no ownership of any media found using this tool.
                 </Text>
               </View>
             </ScrollView>
@@ -98,6 +99,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     </Modal>
   )
 }
+
+const tab = Platform.OS === "ios" && Platform.isPad
 
 const styles = StyleSheet.create({
   container: {
@@ -109,8 +112,9 @@ const styles = StyleSheet.create({
     justifyContent: "center"
   },
   modalContainer: {
-    height: height * 0.45,
-    width: "90%",
+    height: tab ? height * 0.4 : height * 0.5,
+    width: tab ? "60%" : "90%",
+    maxWidth: 400,
     borderRadius: 36,
     marginHorizontal: "auto",
     overflow: "hidden",

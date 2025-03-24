@@ -6,13 +6,14 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#CCDDCC"
-    },
     "ios": {
       "supportsTablet": true,
+      "splash": {
+        "image": "./assets/splash-icon.png",
+        "tabletImage": "./assets/splash-icon.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#CCDDCC"
+      },
       "bundleIdentifier": "dev.keiver.araname",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to save images and videos.",
@@ -20,10 +21,6 @@
       }
     },
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#CCDDCC"
-      },
       "package": "dev.keiver.araname",
       "permissions": ["INTERNET", "WRITE_EXTERNAL_STORAGE", "READ_EXTERNAL_STORAGE"],
       "usesCleartextTraffic": true
@@ -42,7 +39,8 @@
           "image": "./assets/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#CCDDCC"
+          "backgroundColor": "#CCDDCC",
+          "tabletImage": "./assets/splash-icon.png"
         }
       ],
       [

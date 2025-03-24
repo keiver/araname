@@ -43,6 +43,7 @@ import NativeAdCard from "./ads/NativeAdCard"
 import compressAndDownloadFiles from "./useZip"
 import AdBanner, {AdBannerRef} from "./ads/AdBanner"
 import SettingsModal from "./Settings"
+import useIAP from "./ads/usePurchaseManager"
 
 const versionFile = require("./app.json")
 
@@ -68,6 +69,7 @@ const App: React.FC = () => {
   // Selection state
   const [selectedItems, setSelectedItems] = useState<Record<string, boolean>>({})
   const [selectionMode, setSelectionMode] = useState(false)
+  const {hasNoAds, isCheckingPurchases} = useIAP()
 
   const {width, isLandscape} = useOrientation()
 
@@ -136,6 +138,10 @@ const App: React.FC = () => {
     let insertedAds = 0
 
     for (let i = adInterval; i < result.length + insertedAds; i += adInterval + 1) {
+      if (hasNoAds) {
+        continue
+      }
+
       // Create a special ad item that can be identified in renderItem
       result.splice(i, 0, {
         isAd: true,
@@ -147,7 +153,7 @@ const App: React.FC = () => {
     }
 
     return result
-  }, [filteredMedia])
+  }, [filteredMedia, hasNoAds])
 
   // Selection-related methods
   const toggleItemSelection = useCallback(
@@ -414,7 +420,7 @@ const App: React.FC = () => {
         style={[
           styles.container,
           {
-            backgroundColor: theme === "dark" ? "#3d3d3d" : "#ffffff"
+            backgroundColor: theme === "dark" ? "#3d3d3d" : "#CCDDCC"
           }
         ]}
       >
@@ -544,7 +550,9 @@ const App: React.FC = () => {
             <View style={styles.resultsHeader}>
               {selectionMode ? (
                 <View style={styles.selectionToolbar}>
-                  <Text style={styles.selectionCount}>{uiState.selectedCount} items selected</Text>
+                  <Text style={[styles.selectionCount, {color: theme === "dark" ? "#CCCCCC" : "#4A4A4AFF"}]}>
+                    {uiState.selectedCount} items selected
+                  </Text>
                   <View style={styles.selectionActions}>
                     <TouchableOpacity
                       style={styles.selectionActionButton}
@@ -564,7 +572,8 @@ const App: React.FC = () => {
                           }
                         ]}
                       >
-                        Download Zip {zipProgress >= 0 ? <Text>{zipProgress?.toFixed(0) || ""}%</Text> : ""}
+                        Zip Selected{" "}
+                        {zipProgress > 0 && zipProgress < 100 ? <Text>{zipProgress?.toFixed(0) || ""}%</Text> : ""}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.selectionActionButton} onPress={selectAllItems}>
@@ -573,7 +582,7 @@ const App: React.FC = () => {
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.selectionActionButton} onPress={clearSelection}>
                       <Ionicons name="close-circle" size={22} color="#FFC814FF" />
-                      <Text style={styles.selectionActionText}>Cancel</Text>
+                      <Text style={styles.selectionActionText}>Close</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -629,7 +638,7 @@ const App: React.FC = () => {
               }}
               key={`grid-${GRID_COLUMNS}-${isLandscape ? "landscape" : "portrait"}`}
             />
-            {filteredMedia.length === 0 && (
+            {filteredMedia.length === 0 && !isCheckingPurchases && !hasNoAds && (
               <View
                 style={[
                   styles.gridContainer,
@@ -850,7 +859,7 @@ const styles = StyleSheet.create({
   selectionCount: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#2e282ae6",
+    // color: "#2e282ae6",
     marginBottom: 8
   },
   selectionActions: {
