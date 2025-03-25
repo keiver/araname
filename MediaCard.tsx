@@ -15,6 +15,7 @@ import {SvgUri} from "react-native-svg"
 import axios from "axios"
 import * as Clipboard from "expo-clipboard"
 import {MediaInfoModal} from "./MediaInfoModal" // Import our new modal
+import * as Haptics from "expo-haptics"
 
 const MIN_ITEM_HEIGHT = 150
 const MAX_ITEM_HEIGHT = 250
@@ -95,9 +96,13 @@ export const MediaCard: React.FC<MediaCardProps> = ({
   }, [item.url, setCopyMessage, selectionMode, onSelectToggle])
 
   // Handle long press to enter selection mode
-  const handleLongPress = useCallback(() => {
+  const handleLongPress = useCallback(async () => {
     if (onSelectToggle) {
-      onSelectToggle(item.url)
+      // onSelectToggle(item.url)
+      setInfoModalVisible(true)
+      try {
+        await Haptics?.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+      } catch (error) {}
     }
   }, [item.url, onSelectToggle])
 
@@ -301,7 +306,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({
           ) : (
             <View style={styles.actionButtonsContainer}>
               {/* Download button */}
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 style={[
                   styles.actionButton,
                   isComplete ? styles.completeButton : null,
@@ -318,7 +323,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({
                 ) : (
                   <Ionicons name="cloud-download" size={22} color="#2e282ae6" />
                 )}
-              </TouchableOpacity>
+              </TouchableOpacity> */}
 
               <TouchableOpacity
                 style={[styles.actionButton]}

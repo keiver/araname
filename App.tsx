@@ -65,7 +65,8 @@ const App: React.FC = () => {
     useWebViewExtraction,
     handleWebViewResults,
     extractionInProgress,
-    cleanMediaItems
+    cleanMediaItems,
+    resetState
   } = useMediaExtractor()
 
   const [zipProgress, setZipProgress] = useState(0)
@@ -162,6 +163,7 @@ const App: React.FC = () => {
   // Selection-related methods
   const toggleItemSelection = useCallback(
     async (itemUrl: string) => {
+      return
       // Create a new selection state first
       const newSelectionState = {
         ...selectedItems,
@@ -308,6 +310,20 @@ const App: React.FC = () => {
       setFilterType("all")
     }
   }, [url, addRecentUrl, extractResources])
+
+  const handleExtractionError = useCallback(
+    errorMsg => {
+      // Log the error
+      console.log("Extraction error:", errorMsg)
+
+      // Reset the state using your existing function
+      resetState()
+
+      // Optionally show an error message to the user
+      Alert.alert("Error", "Something went wrong with the search. Please try again.", [{text: "OK"}])
+    },
+    [resetState]
+  )
 
   // Handle selection from recent URLs
   const handleRecentUrlSelect = useCallback(
@@ -479,7 +495,7 @@ const App: React.FC = () => {
             {color: theme === "dark" ? "#FFC814FF" : "#000000FF"}
           ]}
         >
-          Araname - Web Resource Inspector
+          Araname - Web Resources Inspector
         </Text>
         {/* Search input */}
         <View style={styles.searchContainer}>
@@ -695,9 +711,7 @@ const App: React.FC = () => {
           <InvisibleWebViewExtractor
             url={formatUrl(url)}
             onMediaExtracted={handleWebViewResults}
-            onError={() => {
-              console.log("Error extracting media")
-            }}
+            onError={handleExtractionError}
           />
         )}
         <AdBanner

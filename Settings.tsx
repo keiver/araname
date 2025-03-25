@@ -22,7 +22,7 @@ interface SettingsModalProps {
 
 const SettingsModal: React.FC<SettingsModalProps> = ({
   appVersion = "1.0.0",
-  appDescription = "Tool for developers and designers to inspect and analyze media resources on websites."
+  appDescription = "A simple tool for developers and designers to inspect and analyze resources used on websites."
 }) => {
   const theme = useColorScheme()
   const isDark = theme === "dark"
@@ -39,22 +39,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       </View>
 
       <View style={styles.section}>
-        <View style={{flexDirection: "column", alignItems: "center", marginBottom: 12}}>
-          <Text
-            style={[
-              styles.descriptionText,
-              {textAlign: "center", color: isDark ? "#FF6B60" : "#FF3B30", flex: 1, fontWeight: "500"}
-            ]}
-          >
-            MEDIA DOWNLOAD RESTRICTIONS
-          </Text>
-        </View>
-
-        <Text style={[styles.descriptionText, {color: isDark ? "#CCCCCC" : "#666", marginBottom: 12}]}>
-          Media download is only enabled for development environments to help developers test their own media resources.
-          For detailed information about our media download policy:
-        </Text>
-
         <TouchableOpacity
           style={[styles.policyButton, {backgroundColor: isDark ? "#9090904D" : "#87878714"}]}
           onPress={openPolicyPage}
@@ -65,9 +49,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           </Text>
         </TouchableOpacity>
 
-        <View style={{flexDirection: "row", alignItems: "center", marginTop: 12}}>
+        <View style={{flexDirection: "row", alignItems: "center", marginTop: 23}}>
           <Text style={[styles.descriptionText, {color: isDark ? "#CCCCCC" : "#666", flex: 1}]}>
-            You are responsible for ensuring you have proper rights before saving or using any media resources.
+            You are responsible for ensuring you have proper rights before saving or using any media resources not owned
+            by you.
           </Text>
         </View>
       </View>

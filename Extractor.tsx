@@ -30,6 +30,20 @@ const InvisibleWebViewExtractor = ({
     }
   }, [])
 
+  useEffect(() => {
+    // Master timeout to handle offline websites
+    const timeoutId = setTimeout(() => {
+      // Force error after timeout regardless of other states
+      const errorMsg = "Connection timed out. Please check your internet connection."
+      setError(errorMsg)
+      if (onError) {
+        onError(errorMsg)
+      }
+    }, 20000) // 20 second timeout
+
+    return () => clearTimeout(timeoutId)
+  }, [url, onError]) // Only depend on url and onError
+
   // Initial script to inject when page loads - sets up lazy load detection
   const initialScript = `
     // Track loading state

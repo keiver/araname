@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     justifyContent: "center"
   },
   container: {
-    height: isTablet && isPortrait ? height * 0.4 : height * 0.7,
+    height: isTablet && isPortrait ? height * 0.4 : height * 0.6,
     overflow: "hidden",
     width: "100%",
     maxWidth: isTablet ? 500 : 400,

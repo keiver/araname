@@ -576,7 +576,16 @@ const useMediaExtractor = () => {
     [downloadingItems, permissionResponse, requestPermission, cancelDownload]
   )
 
+  const resetState = useCallback(() => {
+    setUrl("")
+    setLoading(false)
+    setMedia([])
+    setDownloadingItems({})
+    setExtractionInProgress(false)
+  }, [])
+
   return {
+    resetState,
     cleanMediaItems,
     url,
     setUrl,
