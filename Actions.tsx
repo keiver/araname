@@ -153,7 +153,9 @@ const Actions: React.FC<ActionsProps> = ({
           ) : (
             <Ionicons name={hasNoAds ? "checkmark" : "chatbox"} size={30} color="#FFC312" />
           )}
-          <Text style={{fontSize: 10, color: "#FFC312"}}>{displayRemoveAdsText}</Text>
+          <Text style={{fontSize: 10, color: "#FFC312", marginLeft: 0}} numberOfLines={1}>
+            {displayRemoveAdsText}
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -191,7 +193,8 @@ const styles = StyleSheet.create({
   headerContainer: {
     flexDirection: "row",
     justifyContent: "center",
-    alignItems: "center"
+    alignItems: "center",
+    paddingHorizontal: 20
   },
   title: {
     fontSize: 18,
@@ -202,10 +205,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10
+    gap: 2
   },
   actionButton: {
-    width: 106,
+    width: "100%",
+    maxWidth: 100,
     height: 66,
     borderRadius: 0,
     backgroundColor: "#E4582E00",

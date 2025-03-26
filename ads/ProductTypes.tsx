@@ -20,7 +20,7 @@ export type StoredPurchase = IAPPurchase & {
 
 export const STORE_SKUS = {
   NO_ADS: Platform.select({
-    ios: "dev.keiver.araname.no.ads",
+    ios: "dev.keiver.araname.no.ads.1.1.3",
     android: "dev.keiver.araname.no.ads",
     default: "dev.keiver.araname.no.ads"
   })

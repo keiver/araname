@@ -19,7 +19,7 @@ import Left from "./assets/left.svg"
 // Initial dimensions - will be updated when orientation changes
 const initialDimensions = Dimensions.get("window")
 const TOOLBAR_HEIGHT = 140
-const VISIBLE_PORTION = 32
+const VISIBLE_PORTION = 34
 const BOTTOM_AD_BANNER_HEIGHT = 50
 
 const SPRING_CONFIG = {
