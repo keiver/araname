@@ -53,6 +53,7 @@ interface AdImpressionState {
   cumulativeVisibleTime: number
   hasRecordedImpression: boolean
   viewabilityPercentage: number
+  createdAt: number // Add creation timestamp
 }
 
 /**
@@ -63,20 +64,50 @@ class AdVisibilityTracker {
   private adVisibilityMap: Map<string, AdImpressionState> = new Map()
   private visibilityCheckInterval: NodeJS.Timeout | null = null
   private eventEmitter = new SimpleEventEmitter()
+  private instanceCount: number = 0 // Reference counting for proper cleanup
+  private lastCleanupTime: number = Date.now()
 
-  // Singleton pattern
+  // Singleton pattern with reference counting
   private constructor() {
-    // Set up interval to track cumulative visibility
+    // Set up interval to track cumulative visibility - less frequent checking
     this.visibilityCheckInterval = setInterval(() => {
       this.processVisibilityTimes()
-    }, 200) // Check every 200ms
+
+      // Cleanup old entries every 30 seconds
+      if (Date.now() - this.lastCleanupTime > 30000) {
+        this.cleanupOldEntries()
+        this.lastCleanupTime = Date.now()
+      }
+    }, 500) // Check every 500ms instead of 200ms
   }
 
   public static getInstance(): AdVisibilityTracker {
     if (!AdVisibilityTracker.instance) {
       AdVisibilityTracker.instance = new AdVisibilityTracker()
     }
+
+    // Increment reference count
+    AdVisibilityTracker.instance.instanceCount++
     return AdVisibilityTracker.instance
+  }
+
+  // New method to cleanup old entries that may have been forgotten
+  private cleanupOldEntries(): void {
+    const now = Date.now()
+    const FIVE_MINUTES = 5 * 60 * 1000
+    let count = 0
+
+    for (const [adId, state] of this.adVisibilityMap.entries()) {
+      // Remove entries older than 5 minutes that never recorded an impression
+      if (!state.hasRecordedImpression && now - state.createdAt > FIVE_MINUTES) {
+        this.adVisibilityMap.delete(adId)
+        count++
+      }
+    }
+
+    if (count > 0) {
+      console.log(`[AdVisibilityTracker] Cleaned up ${count} stale ad entries`)
+    }
   }
 
   /**
@@ -94,7 +125,8 @@ class AdVisibilityTracker {
         lastVisibleTimestamp: isVisible ? now : 0,
         cumulativeVisibleTime: 0,
         hasRecordedImpression: false,
-        viewabilityPercentage: isVisible ? viewableArea : 0
+        viewabilityPercentage: isVisible ? viewableArea : 0,
+        createdAt: now // Add creation timestamp
       })
     } else {
       const adState = this.adVisibilityMap.get(adId)!
@@ -169,7 +201,8 @@ class AdVisibilityTracker {
         lastVisibleTimestamp: 0,
         cumulativeVisibleTime: 0,
         hasRecordedImpression: false,
-        viewabilityPercentage: 0
+        viewabilityPercentage: 0,
+        createdAt: Date.now() // Add creation timestamp
       })
     }
   }
@@ -180,6 +213,18 @@ class AdVisibilityTracker {
    */
   public unregisterAd(adId: string): void {
     this.adVisibilityMap.delete(adId)
+  }
+
+  /**
+   * Release one reference to the tracker
+   * When all references are released, destroy the tracker
+   */
+  public release(): void {
+    this.instanceCount--
+
+    if (this.instanceCount <= 0) {
+      this.destroy()
+    }
   }
 
   /**

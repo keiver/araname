@@ -1,8 +1,9 @@
-import React, {useEffect, useState, useRef} from "react"
+import React, {useEffect, useState, useRef, useMemo} from "react"
 import {StyleSheet, View, Text, Platform, useColorScheme, findNodeHandle} from "react-native"
 import {NativeAd, NativeAdView, NativeAsset, NativeAssetType, NativeMediaView} from "react-native-google-mobile-ads"
 import AdManager from "./AdManager"
 import useIAP from "./usePurchaseManager"
+import AdVisibilityTracker from "./AdVisibilityTracker"
 
 interface EnhancedNativeAdCardProps {
   itemWidth: number
@@ -33,16 +34,27 @@ const EnhancedNativeAdCard: React.FC<EnhancedNativeAdCardProps> = ({
   const isMountedRef = useRef(true)
   const adLoadTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const adManager = AdManager.getInstance()
-  const cardRef = useRef<View>(null)
+  const cardRef = React.createRef<View>()
   const lastVisibilityRef = useRef<boolean>(false)
   const lastViewableAreaRef = useRef<number>(0)
+  const hasLoadedAdRef = useRef<boolean>(false)
+  const visibilityTrackerRef = useRef<AdVisibilityTracker | null>(null)
 
-  // Ensure minimum dimensions for AdMob requirements
-  const actualWidth = Math.max(itemWidth, 120)
-  const actualHeight = Math.max(itemHeight, 160)
-  const mediaHeight = actualHeight - 150
+  const cacheKey = useMemo(() => {
+    // Use the testID as the cache key if provided
+    return testID || `ad-card-${itemWidth}-${itemHeight}`
+  }, [testID, itemWidth, itemHeight])
 
-  // Effect to handle props updates for visibility
+  // Ensure minimum dimensions for AdMob requirements - memoized for performance
+  const dimensions = useMemo(() => {
+    const actualWidth = Math.max(itemWidth, 120)
+    const actualHeight = Math.max(itemHeight, 160)
+    const mediaHeight = actualHeight - 150
+
+    return {actualWidth, actualHeight, mediaHeight}
+  }, [itemWidth, itemHeight])
+
+  // Effect to handle ONLY visibility tracking, separate from ad loading
   useEffect(() => {
     // Only track visibility when we have a loaded ad
     if (nativeAd && adId && (isVisible !== lastVisibilityRef.current || viewableArea !== lastViewableAreaRef.current)) {
@@ -58,17 +70,27 @@ const EnhancedNativeAdCard: React.FC<EnhancedNativeAdCardProps> = ({
         onViewabilityChange(isVisible, viewableArea)
       }
     }
-  }, [isVisible, viewableArea, nativeAd, adId, onViewabilityChange])
+  }, [isVisible, viewableArea, nativeAd, adId, onViewabilityChange, adManager])
 
-  // This effect handles ad loading and cleanup
+  // This effect ONLY handles initial ad loading and cleanup
+  // It should not re-run when visibility changes
   useEffect(() => {
     isMountedRef.current = true
+
+    // Get a reference to the visibility tracker
+    visibilityTrackerRef.current = AdVisibilityTracker.getInstance()
+
+    // Only load an ad once per component lifecycle
+    if (hasLoadedAdRef.current) {
+      return
+    }
 
     // Skip ad loading if user has premium or we're checking purchase status
     if (hasNoAds || isCheckingPurchases) {
       return
     }
 
+    hasLoadedAdRef.current = true
     setIsLoading(true)
 
     // Add a timeout to prevent waiting too long for ad loading
@@ -81,21 +103,21 @@ const EnhancedNativeAdCard: React.FC<EnhancedNativeAdCardProps> = ({
       }
     }, 10000) // 10 second timeout
 
-    // Use a delay to prevent loading all ads at once when scrolling
+    // Load ad with a random delay to prevent too many simultaneous loads
     const loadAdWithDelay = async () => {
-      // Random delay between 100-500ms to stagger loads
-      const delay = Math.floor(Math.random() * 400) + 100
-      await new Promise(resolve => setTimeout(resolve, delay))
-
-      if (!isMountedRef.current) return
-
       try {
-        // Get a native ad from the manager
-        const {ad, adId: newAdId} = await adManager.getNativeAd()
+        // Random delay between 100-500ms to stagger loads
+        const delay = Math.floor(Math.random() * 400) + 100
+        await new Promise(resolve => setTimeout(resolve, delay))
+
+        if (!isMountedRef.current) return
+
+        // Get a native ad from the manager, using the cache key
+        const {ad, adId: newAdId} = await adManager.getNativeAd(cacheKey)
 
         if (!isMountedRef.current) {
           // Component unmounted while we were loading
-          if (ad) ad.destroy()
+          // Don't destroy the ad - it's now cached
           return
         }
 
@@ -103,6 +125,7 @@ const EnhancedNativeAdCard: React.FC<EnhancedNativeAdCardProps> = ({
           setNativeAd(ad)
           setAdId(newAdId)
           setIsLoading(false)
+
           if (onAdLoaded) onAdLoaded()
 
           // Clear timeout if ad loaded successfully
@@ -110,7 +133,7 @@ const EnhancedNativeAdCard: React.FC<EnhancedNativeAdCardProps> = ({
             clearTimeout(adLoadTimeoutRef.current)
           }
 
-          // Initialize visibility tracking with current state
+          // If ad is already visible when loaded, initialize tracking
           if (isVisible) {
             adManager.trackAdVisibility(newAdId, isVisible, viewableArea)
             lastVisibilityRef.current = isVisible
@@ -135,6 +158,7 @@ const EnhancedNativeAdCard: React.FC<EnhancedNativeAdCardProps> = ({
 
     loadAdWithDelay()
 
+    // Cleanup function
     return () => {
       isMountedRef.current = false
 
@@ -142,17 +166,19 @@ const EnhancedNativeAdCard: React.FC<EnhancedNativeAdCardProps> = ({
         clearTimeout(adLoadTimeoutRef.current)
       }
 
-      // Clean up the ad when unmounting
-      if (nativeAd) {
-        nativeAd.destroy()
-      }
+      // Don't destroy the ad - it's now cached in the AdManager
 
       // Unregister from visibility tracking
       if (adId) {
         adManager.trackAdVisibility(adId, false, 0)
       }
+
+      if (visibilityTrackerRef.current) {
+        visibilityTrackerRef.current.release()
+        visibilityTrackerRef.current = null
+      }
     }
-  }, [hasNoAds, isCheckingPurchases, onAdLoaded, onAdError])
+  }, [hasNoAds, isCheckingPurchases, onAdLoaded, onAdError, adManager]) // removed isVisible and viewableArea
 
   // Show nothing while loading or if premium user
   if (isLoading || !nativeAd || hasNoAds || isCheckingPurchases) {
@@ -165,19 +191,19 @@ const EnhancedNativeAdCard: React.FC<EnhancedNativeAdCardProps> = ({
         style={[
           styles.container,
           {
-            width: actualWidth,
-            height: actualHeight,
+            width: dimensions.actualWidth,
+            height: dimensions.actualHeight,
             backgroundColor: "#2a2a2a",
             borderRadius: 23
           }
         ]}
         nativeAd={nativeAd}
       >
-        <View style={[styles.mediaContainer, {height: mediaHeight}]}>
+        <View style={[styles.mediaContainer, {height: dimensions.mediaHeight}]}>
           <NativeMediaView
             style={{
-              width: actualWidth - 10,
-              height: mediaHeight - 10,
+              width: dimensions.actualWidth - 10,
+              height: dimensions.mediaHeight - 10,
               backgroundColor: "transparent"
             }}
           />
@@ -188,7 +214,7 @@ const EnhancedNativeAdCard: React.FC<EnhancedNativeAdCardProps> = ({
             styles.infoContainer,
             {
               backgroundColor: theme === "dark" ? "#C1C1C1B4" : "#FFFFFFE3",
-              width: actualWidth + 1,
+              width: dimensions.actualWidth + 1,
               marginLeft: -2, // Added this negative margin to match original
               position: "absolute",
               bottom: 0
@@ -293,4 +319,12 @@ const styles = StyleSheet.create({
   }
 })
 
-export default React.memo(EnhancedNativeAdCard)
+export default React.memo(EnhancedNativeAdCard, (prevProps, nextProps) => {
+  // Custom comparison function to prevent unnecessary re-renders
+  // Only re-render if width/height/testID changes, ignore visibility changes
+  return (
+    prevProps.itemWidth === nextProps.itemWidth &&
+    prevProps.itemHeight === nextProps.itemHeight &&
+    prevProps.testID === nextProps.testID
+  )
+})

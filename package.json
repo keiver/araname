@@ -40,7 +40,8 @@
     "react-native-webview": "13.12.5",
     "react-native-zip-stream": "^1.0.7",
     "url-join": "^5.0.0",
-    "expo-splash-screen": "~0.29.22"
+    "expo-splash-screen": "~0.29.22",
+    "@shopify/flash-list": "1.7.3"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

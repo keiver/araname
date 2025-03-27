@@ -45,6 +45,7 @@ import InvisibleWebViewExtractor from "./Extractor"
 import AdManager from "./ads/AdManager"
 import EnhancedNativeAdCard from "./ads/EnhancedNativeAdCard"
 import {ViewabilityTrackedFlatList, EnhancedRenderItemInfo} from "./ads/ViewabilityTrackerHOC"
+import {ViewabilityTrackedFlashList} from "./ads/ViewabilityTrackerHOC"
 
 import compressAndDownloadFiles from "./useZip"
 import AdBanner, {AdBannerRef} from "./ads/AdBanner"
@@ -52,6 +53,7 @@ import SettingsModal from "./Settings"
 import useIAP from "./ads/usePurchaseManager"
 import MediaInfoModal from "./Modal"
 import {isDevelopmentEnvironment} from "./DomainClassifier"
+import PersistentAdContainer from "./ads/PersistentAdContainer"
 
 const versionFile = require("./app.json")
 
@@ -137,11 +139,12 @@ const App: React.FC = () => {
     return media.filter(item => item.type === filterType || item.format === filterType)
   }, [media, filterType])
 
+  // And the mediaWithAds calculation - make sure the dependencies are correctly specified
   const mediaWithAds = useMemo(() => {
     if (filteredMedia.length === 0) return []
     if (hasNoAds) return filteredMedia
 
-    // Use the AdManager to insert ads with proper spacing
+    // Use adManager from state
     return adManager.insertNativeAdsIntoList(filteredMedia)
   }, [filteredMedia, hasNoAds, adManager])
 
@@ -401,23 +404,40 @@ const App: React.FC = () => {
     }
   }, [inputRef])
 
+  // Pre-calculate adjustedItemWidth based on orientation
+  const getAdjustedItemWidth = useCallback(
+    isLandscapeView => {
+      return isLandscapeView && Platform.OS === "ios" && !Platform.isPad
+        ? ITEM_WIDTH - 40 // Landscape adjustment for iPhone
+        : ITEM_WIDTH // Normal width for portrait or iPad
+    },
+    [ITEM_WIDTH]
+  )
+
   // Render each media item using our new MediaCard component with visibility tracking
   const renderItem = useCallback(
     (info: EnhancedRenderItemInfo<any>) => {
-      const {item, index, isVisible, viewableArea} = info
-      const adjustedItemWidth =
-        isLandscape && Platform.OS === "ios" && !Platform.isPad
-          ? ITEM_WIDTH - 40 // Landscape adjustment for iPhone
-          : ITEM_WIDTH // Normal width for portrait or iPad
+      const {item, index, isVisible = false, viewableArea = 0} = info
+
+      // Use the pre-calculated width
+      const adjustedItemWidth = getAdjustedItemWidth(isLandscape)
 
       if (item.type === "ad") {
         return (
-          <EnhancedNativeAdCard
-            itemWidth={adjustedItemWidth}
-            itemHeight={300}
-            key={item.id}
-            isVisible={isVisible}
-            viewableArea={viewableArea}
+          <PersistentAdContainer
+            id={`ad-${item.id}`}
+            width={adjustedItemWidth}
+            height={300}
+            renderAd={() => (
+              <EnhancedNativeAdCard
+                itemWidth={adjustedItemWidth}
+                itemHeight={300}
+                key={`ad-${item.id}`}
+                isVisible={isVisible}
+                viewableArea={viewableArea}
+                testID={`ad-card-${item.id}`}
+              />
+            )}
           />
         )
       }
@@ -440,12 +460,12 @@ const App: React.FC = () => {
       downloadingItems,
       handleDownload,
       handleCancelDownload,
-      ITEM_WIDTH,
       GRID_COLUMNS,
       selectedItems,
       toggleItemSelection,
       selectionMode,
-      isLandscape
+      isLandscape,
+      getAdjustedItemWidth
     ]
   )
 
@@ -655,39 +675,28 @@ const App: React.FC = () => {
             </View>
 
             {/* Replace standard FlatList with ViewabilityTrackedFlatList */}
-            <ViewabilityTrackedFlatList
+            <ViewabilityTrackedFlashList
               itemKeyExtractor={itemKeyExtractor}
               onItemVisibilityChanged={handleItemVisibilityChanged}
               customViewabilityConfig={customViewabilityConfig}
-              flatListProps={{
+              flashListProps={{
                 data: mediaWithAds,
                 renderItem: renderItem,
                 numColumns: GRID_COLUMNS,
+                estimatedItemSize: 300, // Add this for FlashList performance
                 contentContainerStyle: [
                   styles.gridContainer,
                   {
-                    paddingBottom:
-                      180 +
-                      // If the last row is incomplete, add extra space
-                      (mediaWithAds.length % GRID_COLUMNS !== 0 ? 40 : 0)
+                    paddingBottom: 180 + (mediaWithAds.length % GRID_COLUMNS !== 0 ? 40 : 0)
                   }
                 ],
                 showsVerticalScrollIndicator: false,
-                // Performance optimization props
-                removeClippedSubviews: false, // Ensures items are rendered properly at edges
-                scrollIndicatorInsets: {bottom: 140}, // Matches toolbar height
-                maxToRenderPerBatch: 4,
-                updateCellsBatchingPeriod: 50,
-                windowSize: 9,
-                initialNumToRender: 8,
-                // Additional props for smooth filtering
-                disableVirtualization: false,
-                extraData: {filterType, selectedItems, selectionMode}, // Object syntax is more reliable
+                scrollIndicatorInsets: {bottom: 140},
+                keyExtractor: keyExtractor,
                 // Maintain position during updates
                 maintainVisibleContentPosition: {
                   minIndexForVisible: 0
                 },
-                keyExtractor: keyExtractor,
                 key: `grid-${GRID_COLUMNS}-${isLandscape ? "landscape" : "portrait"}`
               }}
             />

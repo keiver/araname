@@ -33,13 +33,16 @@ export default class AdManager {
   private activeRequests: number = 0
   private destroyed: boolean = false
   private visibilityTracker: AdVisibilityTracker
-  private adInfoMap: Map<string, {adId: string; hasRecordedImpression: boolean}> = new Map()
+  private adInfoMap: Map<string, {adId: string; hasRecordedImpression: boolean; createdAt: number}> = new Map()
+  private lastCleanupTime: number = Date.now()
+  private adCache: Map<string, {ad: NativeAd; adId: string}> = new Map()
 
   // Configuration
   private adInterval: number = 10 // Show ad every 10 items (was 6)
   private requestThrottleMs: number = 2000 // 2 seconds between requests
   private maxConcurrentRequests: number = 1 // Only one request at a time
-  private adPoolSize: number = 3 // Keep 3 ads preloaded
+  private adPoolSize: number = 2 // Keep 2 ads preloaded (was 3)
+  private maxQueueSize: number = 5 // Limit queue size
   private useTestAds: boolean = __DEV__
 
   private constructor() {
@@ -106,6 +109,33 @@ export default class AdManager {
     }
   }
 
+  // Check if cleanup is needed and perform if necessary
+  private checkAndCleanup(): void {
+    // Clean up unused ads every 30 seconds
+    if (Date.now() - this.lastCleanupTime > 30000) {
+      this.cleanupUnusedAds()
+      this.lastCleanupTime = Date.now()
+    }
+  }
+
+  // Clean up ads that haven't been used
+  private cleanupUnusedAds(): void {
+    const now = Date.now()
+    const THREE_MINUTES = 3 * 60 * 1000
+    let count = 0
+
+    for (const [adId, info] of this.adInfoMap.entries()) {
+      // If ad hasn't recorded impression in 3 minutes, clean it up
+      if (!info.hasRecordedImpression && now - info.createdAt > THREE_MINUTES) {
+        this.visibilityTracker.unregisterAd(adId)
+        this.adInfoMap.delete(adId)
+        count++
+      }
+    }
+
+    console.log(`[AdManager] Cleaned up ${count} unused ads`)
+  }
+
   // Preload a single native ad - following the pattern from NativeAdCard
   private async preloadNativeAd(): Promise<void> {
     if (this.destroyed || this.nativeAdPool.size >= this.adPoolSize) return
@@ -128,7 +158,8 @@ export default class AdManager {
         this.visibilityTracker.registerAd(adId)
         this.adInfoMap.set(adId, {
           adId,
-          hasRecordedImpression: false
+          hasRecordedImpression: false,
+          createdAt: Date.now()
         })
 
         console.log(`[AdManager] Preloaded native ad: ${adId}`)
@@ -142,7 +173,15 @@ export default class AdManager {
   }
 
   // Get an ad from the pool or load a new one
-  public async getNativeAd(): Promise<{ad: NativeAd | null; adId: string}> {
+  public async getNativeAd(cacheKey?: string): Promise<{ad: NativeAd | null; adId: string}> {
+    this.checkAndCleanup()
+
+    // If a cacheKey is provided and we have a cached ad, return it
+    if (cacheKey && this.adCache.has(cacheKey)) {
+      console.log(`[AdManager] Using cached ad for key: ${cacheKey}`)
+      return this.adCache.get(cacheKey)!
+    }
+
     // First check if we have a preloaded ad
     if (this.nativeAdPool.size > 0) {
       const oldestKey = [...this.nativeAdPool.keys()][0]
@@ -151,6 +190,11 @@ export default class AdManager {
 
       // Preload a replacement
       this.preloadNativeAd()
+
+      // If we have a cache key, store this ad
+      if (cacheKey && ad) {
+        this.adCache.set(cacheKey, {ad, adId: oldestKey})
+      }
 
       return {ad: ad || null, adId: oldestKey}
     }
@@ -178,8 +222,14 @@ export default class AdManager {
       this.visibilityTracker.registerAd(adId)
       this.adInfoMap.set(adId, {
         adId,
-        hasRecordedImpression: false
+        hasRecordedImpression: false,
+        createdAt: Date.now()
       })
+
+      // If we have a cache key, store this ad
+      if (cacheKey && ad) {
+        this.adCache.set(cacheKey, {ad, adId})
+      }
 
       // Preload another ad for next time
       this.preloadNativeAd()
@@ -194,6 +244,15 @@ export default class AdManager {
   // Track visibility for a specific ad
   public trackAdVisibility(adId: string, isVisible: boolean, viewableArea: number): void {
     if (!adId) return
+
+    // Update creation time if this is a new ad
+    if (!this.adInfoMap.has(adId)) {
+      this.adInfoMap.set(adId, {
+        adId,
+        hasRecordedImpression: false,
+        createdAt: Date.now()
+      })
+    }
 
     this.visibilityTracker.trackAdVisibility(adId, isVisible, viewableArea)
   }
@@ -247,6 +306,9 @@ export default class AdManager {
     for (const [adId, _] of this.adInfoMap) {
       this.visibilityTracker.unregisterAd(adId)
     }
+
+    // Release the tracker
+    this.visibilityTracker.release()
 
     this.adInfoMap.clear()
 
