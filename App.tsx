@@ -41,7 +41,11 @@ import Actions from "./Actions"
 import DraggableToolbar from "./DraggableToolbar"
 import {GestureHandlerRootView} from "react-native-gesture-handler"
 import InvisibleWebViewExtractor from "./Extractor"
-import NativeAdCard from "./ads/NativeAdCard"
+
+import AdManager from "./ads/AdManager"
+import EnhancedNativeAdCard from "./ads/EnhancedNativeAdCard"
+import {ViewabilityTrackedFlatList, EnhancedRenderItemInfo} from "./ads/ViewabilityTrackerHOC"
+
 import compressAndDownloadFiles from "./useZip"
 import AdBanner, {AdBannerRef} from "./ads/AdBanner"
 import SettingsModal from "./Settings"
@@ -75,6 +79,7 @@ const App: React.FC = () => {
   const [selectedItems, setSelectedItems] = useState<Record<string, boolean>>({})
   const [selectionMode, setSelectionMode] = useState(false)
   const {hasNoAds, isCheckingPurchases} = useIAP()
+  const adManager = useMemo(() => AdManager.getInstance(), [])
 
   const {width, isLandscape} = useOrientation()
 
@@ -134,31 +139,11 @@ const App: React.FC = () => {
 
   const mediaWithAds = useMemo(() => {
     if (filteredMedia.length === 0) return []
+    if (hasNoAds) return filteredMedia
 
-    // Create a new array with ads inserted at regular intervals
-    const result = [...filteredMedia]
-
-    // Insert an ad after every 6 items (adjust this number as needed)
-    const adInterval = 6
-    let insertedAds = 0
-
-    for (let i = adInterval; i < result.length + insertedAds; i += adInterval + 1) {
-      if (hasNoAds) {
-        continue
-      }
-
-      // Create a special ad item that can be identified in renderItem
-      result.splice(i, 0, {
-        isAd: true,
-        id: `ad-${insertedAds}`,
-        url: `ad-${insertedAds}`,
-        type: "ad"
-      })
-      insertedAds++
-    }
-
-    return result
-  }, [filteredMedia, hasNoAds])
+    // Use the AdManager to insert ads with proper spacing
+    return adManager.insertNativeAdsIntoList(filteredMedia)
+  }, [filteredMedia, hasNoAds, adManager])
 
   // Selection-related methods
   const toggleItemSelection = useCallback(
@@ -386,9 +371,28 @@ const App: React.FC = () => {
     [cancelDownload]
   )
 
-  // Optimize key extractor for FlatList to help with recycling views
+  // Extract a unique key for each item for tracking
+  const itemKeyExtractor = useCallback((item: any) => {
+    if (item.type === "ad") {
+      return `ad-${item.id}`
+    }
+    return `${item.type}-${item.format}-${item.url ? item.url.slice(-40) : ""}`
+  }, [])
+
+  // Handle visibility changes for items (especially ads)
+  const handleItemVisibilityChanged = useCallback(
+    (itemKey: string, isVisible: boolean, visiblePercentage: number) => {
+      // If this is an ad item, track its visibility
+      if (itemKey.startsWith("ad-")) {
+        adManager.trackAdVisibility(itemKey, isVisible, visiblePercentage)
+      }
+    },
+    [adManager]
+  )
+
+  // Original keyExtractor for FlatList
   const keyExtractor = useCallback((item, index) => {
-    return `${item.type}-${item.format}-${item.url.slice(-40)}-${index}`
+    return `${item.type}-${item.format}-${item.url ? item.url.slice(-40) : ""}-${index}`
   }, [])
 
   const focusInput = useCallback(() => {
@@ -397,16 +401,25 @@ const App: React.FC = () => {
     }
   }, [inputRef])
 
-  // Render each media item using our new MediaCard component
+  // Render each media item using our new MediaCard component with visibility tracking
   const renderItem = useCallback(
-    ({item, index}) => {
+    (info: EnhancedRenderItemInfo<any>) => {
+      const {item, index, isVisible, viewableArea} = info
       const adjustedItemWidth =
         isLandscape && Platform.OS === "ios" && !Platform.isPad
           ? ITEM_WIDTH - 40 // Landscape adjustment for iPhone
           : ITEM_WIDTH // Normal width for portrait or iPad
 
       if (item.type === "ad") {
-        return <NativeAdCard itemWidth={adjustedItemWidth} itemHeight={300} key={item.id} />
+        return (
+          <EnhancedNativeAdCard
+            itemWidth={adjustedItemWidth}
+            itemHeight={300}
+            key={item.id}
+            isVisible={isVisible}
+            viewableArea={viewableArea}
+          />
+        )
       }
 
       return (
@@ -431,7 +444,8 @@ const App: React.FC = () => {
       GRID_COLUMNS,
       selectedItems,
       toggleItemSelection,
-      selectionMode
+      selectionMode,
+      isLandscape
     ]
   )
 
@@ -458,7 +472,6 @@ const App: React.FC = () => {
   )
 
   const version_string = `v${versionFile.expo.version}` || "1"
-  // console.log("%cApp.tsx:219 filteredMedia", "color: #007acc;", filteredMedia)
 
   const handleCloseSettings = useCallback(() => {
     setSettingsVisible(false)
@@ -467,6 +480,16 @@ const App: React.FC = () => {
   const handleOpenSettings = useCallback(() => {
     setSettingsVisible(true)
   }, [setSettingsVisible])
+
+  // Custom viewability config for ad tracking
+  const customViewabilityConfig = useMemo(
+    () => ({
+      itemVisiblePercentThreshold: 50, // Item is considered visible when 50% is visible
+      minimumViewTime: 1000, // Need to be visible for at least 1 second
+      waitForInteraction: false // Don't wait for user interaction
+    }),
+    []
+  )
 
   return (
     <GestureHandlerRootView style={{flex: 1, backgroundColor: "transparent"}}>
@@ -489,8 +512,6 @@ const App: React.FC = () => {
               opacity: 0.7,
               marginBottom: 5,
               marginTop: 10
-              // marginLeft: 22,
-              // backgroundColor: "#FFFFFF80"
             },
             {color: theme === "dark" ? "#FFC814FF" : "#000000FF"}
           ]}
@@ -632,50 +653,44 @@ const App: React.FC = () => {
                 />
               )}
             </View>
-            {/* <NativeAdCard itemWidth={200} itemHeight={300} /> */}
-            <FlatList
-              data={mediaWithAds}
-              renderItem={renderItem}
-              keyExtractor={keyExtractor}
-              numColumns={GRID_COLUMNS}
-              contentContainerStyle={[
-                styles.gridContainer,
-                {
-                  paddingBottom:
-                    180 +
-                    // If the last row is incomplete, add extra space
-                    (mediaWithAds.length % GRID_COLUMNS !== 0 ? 40 : 0)
-                }
-              ]}
-              showsVerticalScrollIndicator={false}
-              // Performance optimization props
-              removeClippedSubviews={false} // Ensures items are rendered properly at edges
-              scrollIndicatorInsets={{bottom: 140}} // Matches toolbar height
-              maxToRenderPerBatch={4}
-              updateCellsBatchingPeriod={50}
-              windowSize={9}
-              initialNumToRender={8}
-              // Additional props for smooth filtering
-              disableVirtualization={false}
-              extraData={{filterType, selectedItems, selectionMode}} // Object syntax is more reliable
-              // Maintain position during updates
-              maintainVisibleContentPosition={{
-                minIndexForVisible: 0
-              }}
-              key={`grid-${GRID_COLUMNS}-${isLandscape ? "landscape" : "portrait"}`}
-            />
-            {filteredMedia.length === 0 && !isCheckingPurchases && !hasNoAds && (
-              <View
-                style={[
+
+            {/* Replace standard FlatList with ViewabilityTrackedFlatList */}
+            <ViewabilityTrackedFlatList
+              itemKeyExtractor={itemKeyExtractor}
+              onItemVisibilityChanged={handleItemVisibilityChanged}
+              customViewabilityConfig={customViewabilityConfig}
+              flatListProps={{
+                data: mediaWithAds,
+                renderItem: renderItem,
+                numColumns: GRID_COLUMNS,
+                contentContainerStyle: [
                   styles.gridContainer,
                   {
-                    paddingBottom: "100%"
+                    paddingBottom:
+                      180 +
+                      // If the last row is incomplete, add extra space
+                      (mediaWithAds.length % GRID_COLUMNS !== 0 ? 40 : 0)
                   }
-                ]}
-              >
-                <NativeAdCard itemWidth={180} itemHeight={300} />
-              </View>
-            )}
+                ],
+                showsVerticalScrollIndicator: false,
+                // Performance optimization props
+                removeClippedSubviews: false, // Ensures items are rendered properly at edges
+                scrollIndicatorInsets: {bottom: 140}, // Matches toolbar height
+                maxToRenderPerBatch: 4,
+                updateCellsBatchingPeriod: 50,
+                windowSize: 9,
+                initialNumToRender: 8,
+                // Additional props for smooth filtering
+                disableVirtualization: false,
+                extraData: {filterType, selectedItems, selectionMode}, // Object syntax is more reliable
+                // Maintain position during updates
+                maintainVisibleContentPosition: {
+                  minIndexForVisible: 0
+                },
+                keyExtractor: keyExtractor,
+                key: `grid-${GRID_COLUMNS}-${isLandscape ? "landscape" : "portrait"}`
+              }}
+            />
           </View>
         ) : (
           <View style={styles.emptyContainer}>
@@ -714,12 +729,6 @@ const App: React.FC = () => {
             onError={handleExtractionError}
           />
         )}
-        <AdBanner
-          ref={adBannerRef}
-          interstitial
-          onInterstitialShown={() => console.log("Interstitial shown")}
-          onInterstitialClosed={() => console.log("Interstitial closed")}
-        />
       </SafeAreaView>
     </GestureHandlerRootView>
   )
@@ -731,11 +740,9 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === "android" ? RNStatusBar.currentHeight : 0
   },
   modalTitle: {
-    // fontSize: 12,
     fontWeight: "800",
     marginVertical: 24,
     textAlign: "center"
-    // letterSpacing: 0.5
   },
   shadow: {
     shadowColor: "#000",
@@ -757,7 +764,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 16,
     alignItems: "center"
-    // marginTop: -18
   },
   dropdownOverlay: {
     position: "absolute",
@@ -818,7 +824,6 @@ const styles = StyleSheet.create({
   resultsContainer: {
     flex: 1,
     paddingHorizontal: 16
-    // marginHorizontal: "auto"
   },
   resultsHeader: {
     paddingHorizontal: 8,
@@ -886,7 +891,6 @@ const styles = StyleSheet.create({
   selectionCount: {
     fontSize: 14,
     fontWeight: "600",
-    // color: "#2e282ae6",
     marginBottom: 8
   },
   selectionActions: {

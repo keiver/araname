@@ -88,7 +88,7 @@ android {
 
     namespace 'dev.keiver.araname'
     defaultConfig {
-missingDimensionStrategy "store", "play"
+        missingDimensionStrategy "store", "play"
         applicationId 'dev.keiver.araname'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
@@ -102,6 +102,13 @@ missingDimensionStrategy "store", "play"
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+
+        release {
+            storeFile file(System.getenv("KEYSTORE_PATH") ?: "/Users/keiverhernandez/nogit/@keiverh__barlog.jks")
+            storePassword System.getenv("KEYSTORE_PASSWORD") ?: "dfdf"
+            keyAlias System.getenv("KEY_ALIAS") ?: "dfd" 
+            keyPassword System.getenv("KEY_PASSWORD") ?: "dfdf"
+        }
     }
     buildTypes {
         debug {
@@ -110,7 +117,7 @@ missingDimensionStrategy "store", "play"
         release {
             // Caution! In production, you need to generate your own keystore file.
             // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
             shrinkResources (findProperty('android.enableShrinkResourcesInReleaseBuilds')?.toBoolean() ?: false)
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
