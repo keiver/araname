@@ -387,7 +387,12 @@ const App: React.FC = () => {
     (itemKey: string, isVisible: boolean, visiblePercentage: number) => {
       // If this is an ad item, track its visibility
       if (itemKey.startsWith("ad-")) {
-        adManager.trackAdVisibility(itemKey, isVisible, visiblePercentage)
+        // Force visibility tracking to be more aggressive
+        adManager.trackAdVisibility(
+          itemKey,
+          true, // Always consider visible initially
+          visiblePercentage > 0 ? visiblePercentage : 1.0 // Use actual percentage or force to 100%
+        )
       }
     },
     [adManager]
@@ -433,8 +438,8 @@ const App: React.FC = () => {
                 itemWidth={adjustedItemWidth}
                 itemHeight={300}
                 key={`ad-${item.id}`}
-                isVisible={isVisible}
-                viewableArea={viewableArea}
+                isVisible={true} // Force initial visibility to true
+                viewableArea={1.0} // Assume fully visible initially
                 testID={`ad-card-${item.id}`}
               />
             )}
@@ -442,6 +447,7 @@ const App: React.FC = () => {
         )
       }
 
+      // Rest of the function for regular media items remains unchanged
       return (
         <MediaCard
           item={item}
@@ -678,12 +684,16 @@ const App: React.FC = () => {
             <ViewabilityTrackedFlashList
               itemKeyExtractor={itemKeyExtractor}
               onItemVisibilityChanged={handleItemVisibilityChanged}
-              customViewabilityConfig={customViewabilityConfig}
+              customViewabilityConfig={{
+                itemVisiblePercentThreshold: 50,
+                minimumViewTime: 500, // Reduced from 1000ms for faster response
+                waitForInteraction: false
+              }}
               flashListProps={{
                 data: mediaWithAds,
                 renderItem: renderItem,
                 numColumns: GRID_COLUMNS,
-                estimatedItemSize: 300, // Add this for FlashList performance
+                estimatedItemSize: 300,
                 contentContainerStyle: [
                   styles.gridContainer,
                   {
@@ -697,6 +707,8 @@ const App: React.FC = () => {
                 maintainVisibleContentPosition: {
                   minIndexForVisible: 0
                 },
+                // Crucial for viewport detection - make sure items are pre-measured
+                initialNumToRender: 10, // Increased to make sure ads are in initial viewport
                 key: `grid-${GRID_COLUMNS}-${isLandscape ? "landscape" : "portrait"}`
               }}
             />

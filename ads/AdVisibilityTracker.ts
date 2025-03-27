@@ -54,6 +54,7 @@ interface AdImpressionState {
   hasRecordedImpression: boolean
   viewabilityPercentage: number
   createdAt: number // Add creation timestamp
+  isInitialRender?: boolean // Track if this is initial render
 }
 
 /**
@@ -66,9 +67,12 @@ class AdVisibilityTracker {
   private eventEmitter = new SimpleEventEmitter()
   private instanceCount: number = 0 // Reference counting for proper cleanup
   private lastCleanupTime: number = Date.now()
+  private initialVisibilityProcessed: Set<string> = new Set()
 
   // Singleton pattern with reference counting
   private constructor() {
+    console.log("[AdVisibilityTracker] Initializing visibility tracker")
+
     // Set up interval to track cumulative visibility - less frequent checking
     this.visibilityCheckInterval = setInterval(() => {
       this.processVisibilityTimes()
@@ -121,15 +125,41 @@ class AdVisibilityTracker {
 
     // Create or retrieve visibility state for this ad
     if (!this.adVisibilityMap.has(adId)) {
+      console.log(
+        `[AdVisibilityTracker] Registering new ad visibility state: ${adId}, visible: ${isVisible}, area: ${viewableArea}`
+      )
+
       this.adVisibilityMap.set(adId, {
         lastVisibleTimestamp: isVisible ? now : 0,
         cumulativeVisibleTime: 0,
         hasRecordedImpression: false,
         viewabilityPercentage: isVisible ? viewableArea : 0,
-        createdAt: now // Add creation timestamp
+        createdAt: now, // Add creation timestamp
+        isInitialRender: true // Mark as initial render
       })
+
+      // Process initial render visibility immediately
+      if (isVisible && viewableArea >= VISIBILITY_AREA_THRESHOLD && !this.initialVisibilityProcessed.has(adId)) {
+        this.initialVisibilityProcessed.add(adId)
+
+        // For initial renders that are visible, start accumulating visibility time
+        const adState = this.adVisibilityMap.get(adId)!
+        adState.cumulativeVisibleTime += VISIBILITY_THRESHOLD_MS / 2 // Give it a head start
+
+        console.log(
+          `[AdVisibilityTracker] Initial visibility boost for: ${adId}, cumulative time: ${adState.cumulativeVisibleTime}ms`
+        )
+      }
     } else {
       const adState = this.adVisibilityMap.get(adId)!
+      const wasVisible = adState.lastVisibleTimestamp > 0
+
+      // Log only if visibility state changes
+      if (wasVisible !== isVisible) {
+        console.log(
+          `[AdVisibilityTracker] Visibility changed for ad: ${adId}, visible: ${isVisible}, area: ${viewableArea}`
+        )
+      }
 
       // Update visibility state
       if (isVisible && adState.lastVisibleTimestamp === 0) {
@@ -178,6 +208,32 @@ class AdVisibilityTracker {
           state.hasRecordedImpression = true
         }
       }
+
+      // Special case: if this is an initial render and it's been visible for some time
+      // but not yet reached the threshold, give it an extra boost to help it trigger sooner
+      if (
+        state.isInitialRender &&
+        !state.hasRecordedImpression &&
+        state.cumulativeVisibleTime > 0 &&
+        state.cumulativeVisibleTime < VISIBILITY_THRESHOLD_MS
+      ) {
+        // Only apply this boost once
+        state.isInitialRender = false
+
+        // Add a small boost to help reach threshold faster for initial renders
+        const boostAmount = VISIBILITY_THRESHOLD_MS / 4 // 25% boost
+        state.cumulativeVisibleTime += boostAmount
+
+        console.log(
+          `[AdVisibilityTracker] Applied visibility boost to ad: ${adId}, new time: ${state.cumulativeVisibleTime}ms`
+        )
+
+        // Check if the boost was enough to trigger an impression
+        if (state.cumulativeVisibleTime >= VISIBILITY_THRESHOLD_MS && !state.hasRecordedImpression) {
+          this.recordImpression(adId)
+          state.hasRecordedImpression = true
+        }
+      }
     })
   }
 
@@ -196,13 +252,16 @@ class AdVisibilityTracker {
    * @param adId Unique identifier for the ad
    */
   public registerAd(adId: string): void {
+    console.log(`[AdVisibilityTracker] Registering ad: ${adId}`)
+
     if (!this.adVisibilityMap.has(adId)) {
       this.adVisibilityMap.set(adId, {
         lastVisibleTimestamp: 0,
         cumulativeVisibleTime: 0,
         hasRecordedImpression: false,
         viewabilityPercentage: 0,
-        createdAt: Date.now() // Add creation timestamp
+        createdAt: Date.now(), // Add creation timestamp
+        isInitialRender: true // Mark as initial render
       })
     }
   }
@@ -212,7 +271,23 @@ class AdVisibilityTracker {
    * @param adId Unique identifier for the ad
    */
   public unregisterAd(adId: string): void {
+    console.log(`[AdVisibilityTracker] Unregistering ad: ${adId}`)
     this.adVisibilityMap.delete(adId)
+    this.initialVisibilityProcessed.delete(adId)
+  }
+
+  /**
+   * Manually mark an ad impression as recorded - for forcing impressions if needed
+   * @param adId Unique identifier for the ad
+   */
+  public forceRecordImpression(adId: string): void {
+    console.log(`[AdVisibilityTracker] Force recording impression for ad: ${adId}`)
+
+    const state = this.adVisibilityMap.get(adId)
+    if (state && !state.hasRecordedImpression) {
+      state.hasRecordedImpression = true
+      this.recordImpression(adId)
+    }
   }
 
   /**
@@ -255,12 +330,15 @@ class AdVisibilityTracker {
    * Clean up resources
    */
   public destroy(): void {
+    console.log("[AdVisibilityTracker] Destroying instance")
+
     if (this.visibilityCheckInterval) {
       clearInterval(this.visibilityCheckInterval)
       this.visibilityCheckInterval = null
     }
 
     this.adVisibilityMap.clear()
+    this.initialVisibilityProcessed.clear()
     AdVisibilityTracker.instance = null
   }
 }

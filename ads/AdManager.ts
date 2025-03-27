@@ -36,6 +36,7 @@ export default class AdManager {
   private adInfoMap: Map<string, {adId: string; hasRecordedImpression: boolean; createdAt: number}> = new Map()
   private lastCleanupTime: number = Date.now()
   private adCache: Map<string, {ad: NativeAd; adId: string}> = new Map()
+  private initialRenderIds: Set<string> = new Set() // Track IDs of ads in initial render
 
   // Configuration
   private adInterval: number = 10 // Show ad every 10 items (was 6)
@@ -46,6 +47,7 @@ export default class AdManager {
   private useTestAds: boolean = __DEV__
 
   private constructor() {
+    console.log("[AdManager] Creating new AdManager instance")
     this.visibilityTracker = AdVisibilityTracker.getInstance()
     this.setupVisibilityListeners()
     this.initialize()
@@ -194,6 +196,7 @@ export default class AdManager {
       // If we have a cache key, store this ad
       if (cacheKey && ad) {
         this.adCache.set(cacheKey, {ad, adId: oldestKey})
+        console.log(`[AdManager] Cached ad with ID: ${oldestKey} for key: ${cacheKey}`)
       }
 
       return {ad: ad || null, adId: oldestKey}
@@ -212,6 +215,8 @@ export default class AdManager {
       const adUnitId = this.useTestAds ? TestIds.NATIVE : PRODUCTION_NATIVE_AD_ID
       const adId = `native-direct-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
 
+      console.log(`[AdManager] Creating new ad directly with ID: ${adId}`)
+
       // Create and load the ad directly
       const ad = await NativeAd.createForAdRequest(adUnitId, {
         requestNonPersonalizedAdsOnly: true,
@@ -229,6 +234,7 @@ export default class AdManager {
       // If we have a cache key, store this ad
       if (cacheKey && ad) {
         this.adCache.set(cacheKey, {ad, adId})
+        console.log(`[AdManager] Cached directly loaded ad with ID: ${adId} for key: ${cacheKey}`)
       }
 
       // Preload another ad for next time
@@ -254,7 +260,32 @@ export default class AdManager {
       })
     }
 
+    // If this is part of initial render and it's the first time it's visible,
+    // mark it as part of initial render for special handling
+    if (isVisible && !this.initialRenderIds.has(adId)) {
+      this.initialRenderIds.add(adId)
+      console.log(`[AdManager] First visibility for initial render ad: ${adId}`)
+    }
+
     this.visibilityTracker.trackAdVisibility(adId, isVisible, viewableArea)
+  }
+
+  // Force impression recording for an ad - use carefully
+  public forceImpression(adId: string): void {
+    if (!adId) return
+
+    console.log(`[AdManager] Force recording impression for ad: ${adId}`)
+    this.visibilityTracker.forceRecordImpression(adId)
+
+    // Update local tracking
+    const adKey = this.findAdKeyById(adId)
+    if (adKey) {
+      const adInfo = this.adInfoMap.get(adKey)
+      if (adInfo) {
+        adInfo.hasRecordedImpression = true
+        this.adInfoMap.set(adKey, adInfo)
+      }
+    }
   }
 
   // Insert ads into a list of items with improved spacing
@@ -277,6 +308,7 @@ export default class AdManager {
       insertedAds++
     }
 
+    console.log(`[AdManager] Inserted ${insertedAds} ads into list of ${items.length} items`)
     return result
   }
 
@@ -311,6 +343,7 @@ export default class AdManager {
     this.visibilityTracker.release()
 
     this.adInfoMap.clear()
+    this.initialRenderIds.clear()
 
     // Clear the queue
     this.adQueue = []

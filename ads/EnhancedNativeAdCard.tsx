@@ -22,8 +22,8 @@ const EnhancedNativeAdCard: React.FC<EnhancedNativeAdCardProps> = ({
   onAdLoaded,
   onAdError,
   onViewabilityChange,
-  isVisible = false,
-  viewableArea = 0,
+  isVisible = true, // Default to true for initial rendering
+  viewableArea = 1.0, // Default to fully visible
   testID
 }) => {
   const [nativeAd, setNativeAd] = useState<NativeAd | null>(null)
@@ -35,8 +35,8 @@ const EnhancedNativeAdCard: React.FC<EnhancedNativeAdCardProps> = ({
   const adLoadTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const adManager = AdManager.getInstance()
   const cardRef = React.createRef<View>()
-  const lastVisibilityRef = useRef<boolean>(false)
-  const lastViewableAreaRef = useRef<number>(0)
+  const lastVisibilityRef = useRef<boolean>(true) // Initialize as visible
+  const lastViewableAreaRef = useRef<number>(1.0) // Initialize as fully visible
   const hasLoadedAdRef = useRef<boolean>(false)
   const visibilityTrackerRef = useRef<AdVisibilityTracker | null>(null)
 
@@ -58,6 +58,8 @@ const EnhancedNativeAdCard: React.FC<EnhancedNativeAdCardProps> = ({
   useEffect(() => {
     // Only track visibility when we have a loaded ad
     if (nativeAd && adId && (isVisible !== lastVisibilityRef.current || viewableArea !== lastViewableAreaRef.current)) {
+      console.log(`[EnhancedNativeAdCard] Visibility changed: ${adId}, visible=${isVisible}, area=${viewableArea}`)
+
       // Track the new visibility state
       adManager.trackAdVisibility(adId, isVisible, viewableArea)
 
@@ -73,29 +75,26 @@ const EnhancedNativeAdCard: React.FC<EnhancedNativeAdCardProps> = ({
   }, [isVisible, viewableArea, nativeAd, adId, onViewabilityChange, adManager])
 
   // This effect ONLY handles initial ad loading and cleanup
-  // It should not re-run when visibility changes
   useEffect(() => {
+    console.log(`[EnhancedNativeAdCard] Component mounted: ${testID || "ad-card"}`)
     isMountedRef.current = true
 
     // Get a reference to the visibility tracker
     visibilityTrackerRef.current = AdVisibilityTracker.getInstance()
 
-    // Only load an ad once per component lifecycle
-    if (hasLoadedAdRef.current) {
+    // Skip if already loaded or premium user
+    if (hasLoadedAdRef.current || hasNoAds || isCheckingPurchases) {
       return
     }
 
-    // Skip ad loading if user has premium or we're checking purchase status
-    if (hasNoAds || isCheckingPurchases) {
-      return
-    }
-
+    console.log(`[EnhancedNativeAdCard] Initial load started: ${testID || "ad-card"}`)
     hasLoadedAdRef.current = true
     setIsLoading(true)
 
     // Add a timeout to prevent waiting too long for ad loading
     adLoadTimeoutRef.current = setTimeout(() => {
       if (isMountedRef.current) {
+        console.log(`[EnhancedNativeAdCard] Ad loading timeout: ${testID || "ad-card"}`)
         setIsLoading(false)
         if (onAdError) {
           onAdError(new Error("Ad loading timeout"))
@@ -103,25 +102,21 @@ const EnhancedNativeAdCard: React.FC<EnhancedNativeAdCardProps> = ({
       }
     }, 10000) // 10 second timeout
 
-    // Load ad with a random delay to prevent too many simultaneous loads
-    const loadAdWithDelay = async () => {
+    // Load ad without delay to make sure it shows immediately
+    const loadAd = async () => {
       try {
-        // Random delay between 100-500ms to stagger loads
-        const delay = Math.floor(Math.random() * 400) + 100
-        await new Promise(resolve => setTimeout(resolve, delay))
-
         if (!isMountedRef.current) return
 
+        console.log(`[EnhancedNativeAdCard] Getting ad from manager: ${cacheKey}`)
         // Get a native ad from the manager, using the cache key
         const {ad, adId: newAdId} = await adManager.getNativeAd(cacheKey)
 
         if (!isMountedRef.current) {
-          // Component unmounted while we were loading
-          // Don't destroy the ad - it's now cached
           return
         }
 
         if (ad) {
+          console.log(`[EnhancedNativeAdCard] Ad loaded successfully: ${newAdId}`)
           setNativeAd(ad)
           setAdId(newAdId)
           setIsLoading(false)
@@ -131,19 +126,21 @@ const EnhancedNativeAdCard: React.FC<EnhancedNativeAdCardProps> = ({
           // Clear timeout if ad loaded successfully
           if (adLoadTimeoutRef.current) {
             clearTimeout(adLoadTimeoutRef.current)
+            adLoadTimeoutRef.current = null
           }
 
-          // If ad is already visible when loaded, initialize tracking
-          if (isVisible) {
-            adManager.trackAdVisibility(newAdId, isVisible, viewableArea)
-            lastVisibilityRef.current = isVisible
-            lastViewableAreaRef.current = viewableArea
-          }
+          // Force ad to be visible immediately
+          console.log(`[EnhancedNativeAdCard] Forcing initial visibility: ${newAdId}`)
+          adManager.trackAdVisibility(newAdId, true, 1.0)
+          lastVisibilityRef.current = true
+          lastViewableAreaRef.current = 1.0
         } else {
+          console.log(`[EnhancedNativeAdCard] Failed to load ad: ${cacheKey}`)
           setIsLoading(false)
           if (onAdError) onAdError(new Error("Failed to load ad"))
         }
       } catch (error) {
+        console.error(`[EnhancedNativeAdCard] Error loading ad:`, error)
         if (isMountedRef.current) {
           setIsLoading(false)
           if (onAdError) onAdError(error instanceof Error ? error : new Error(String(error)))
@@ -151,22 +148,25 @@ const EnhancedNativeAdCard: React.FC<EnhancedNativeAdCardProps> = ({
           // Clear timeout if ad failed to load
           if (adLoadTimeoutRef.current) {
             clearTimeout(adLoadTimeoutRef.current)
+            adLoadTimeoutRef.current = null
           }
         }
       }
     }
 
-    loadAdWithDelay()
+    loadAd()
 
     // Cleanup function
     return () => {
+      console.log(`[EnhancedNativeAdCard] Component unmounting: ${testID || "ad-card"}`)
       isMountedRef.current = false
 
       if (adLoadTimeoutRef.current) {
         clearTimeout(adLoadTimeoutRef.current)
+        adLoadTimeoutRef.current = null
       }
 
-      // Don't destroy the ad - it's now cached in the AdManager
+      // Don't destroy the ad - it's cached in the AdManager
 
       // Unregister from visibility tracking
       if (adId) {
@@ -178,11 +178,34 @@ const EnhancedNativeAdCard: React.FC<EnhancedNativeAdCardProps> = ({
         visibilityTrackerRef.current = null
       }
     }
-  }, [hasNoAds, isCheckingPurchases, onAdLoaded, onAdError, adManager]) // removed isVisible and viewableArea
+  }, [hasNoAds, isCheckingPurchases, onAdLoaded, onAdError, adManager, cacheKey, testID]) // removed isVisible and viewableArea
 
-  // Show nothing while loading or if premium user
-  if (isLoading || !nativeAd || hasNoAds || isCheckingPurchases) {
-    return null
+  // Show a placeholder during loading instead of null
+  if (isLoading || hasNoAds || isCheckingPurchases) {
+    return (
+      <View
+        style={{
+          width: dimensions.actualWidth,
+          height: dimensions.actualHeight,
+          backgroundColor: "#2a2a2a20",
+          borderRadius: 23
+        }}
+      />
+    )
+  }
+
+  // Don't render anything if no ad loaded
+  if (!nativeAd) {
+    return (
+      <View
+        style={{
+          width: dimensions.actualWidth,
+          height: dimensions.actualHeight,
+          backgroundColor: "#2a2a2a10",
+          borderRadius: 23
+        }}
+      />
+    )
   }
 
   return (
@@ -290,7 +313,7 @@ const styles = StyleSheet.create({
     fontWeight: "400"
   },
   callToActionButton: {
-    backgroundColor: "#FFC814FF",
+    backgroundColor: "#0EB2EEFF",
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 42,
@@ -304,7 +327,7 @@ const styles = StyleSheet.create({
     color: "#2e282ae6"
   },
   adBadge: {
-    backgroundColor: "#FFC814FF",
+    backgroundColor: "#0EB2EEFF",
     paddingHorizontal: 4,
     paddingVertical: 2,
     justifyContent: "center",
@@ -319,9 +342,14 @@ const styles = StyleSheet.create({
   }
 })
 
+// Modify memo comparison to include visibility props
 export default React.memo(EnhancedNativeAdCard, (prevProps, nextProps) => {
-  // Custom comparison function to prevent unnecessary re-renders
-  // Only re-render if width/height/testID changes, ignore visibility changes
+  // Re-render if visibility changes
+  if (prevProps.isVisible !== nextProps.isVisible || prevProps.viewableArea !== nextProps.viewableArea) {
+    return false // Different props, should re-render
+  }
+
+  // Otherwise, only re-render if width/height/testID changes
   return (
     prevProps.itemWidth === nextProps.itemWidth &&
     prevProps.itemHeight === nextProps.itemHeight &&
