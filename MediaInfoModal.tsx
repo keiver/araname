@@ -373,7 +373,7 @@ export const MediaInfoModal: React.FC<MediaInfoModalProps> = ({visible, item, on
         onPress={() => item && copyToClipboard(item.url, "URL")}
       >
         <Ionicons name="copy-outline" size={20} color="#2e282ae6" />
-        <Text style={styles.actionButtonText}>Copy URL</Text>
+        <Text style={styles.actionButtonText}>Copy</Text>
       </TouchableOpacity>
 
       <TouchableOpacity

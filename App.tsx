@@ -136,7 +136,7 @@ const App: React.FC = () => {
   // Filtered media based on the current filter
   const filteredMedia = useMemo(() => {
     if (filterType === "all") return media
-    return media.filter(item => item.type === filterType || item.format === filterType)
+    return media.filter(item => item?.type === filterType || item?.format === filterType)
   }, [media, filterType])
 
   // And the mediaWithAds calculation - make sure the dependencies are correctly specified
@@ -187,7 +187,7 @@ const App: React.FC = () => {
 
   const selectAllItems = useCallback(async () => {
     // Check if all non-ad items are already selected
-    const totalSelectableItems = filteredMedia.filter(item => item.type !== "ad" && item.url).length
+    const totalSelectableItems = filteredMedia.filter(item => item?.type !== "ad" && item.url).length
     const currentlySelectedCount = Object.values(selectedItems).filter(Boolean).length
 
     // If all items are already selected, clear the selection
@@ -205,8 +205,10 @@ const App: React.FC = () => {
     // Otherwise, perform normal "select all" operation
     const newSelection: Record<string, boolean> = {}
     filteredMedia.forEach(item => {
-      if (item.type !== "ad" && item.url) {
-        newSelection[item.url] = true
+      if (!item?.url) return
+
+      if (item?.type !== "ad" && item?.url) {
+        newSelection[item?.url] = true
       }
     })
     setSelectedItems(newSelection)
@@ -376,10 +378,12 @@ const App: React.FC = () => {
 
   // Extract a unique key for each item for tracking
   const itemKeyExtractor = useCallback((item: any) => {
-    if (item.type === "ad") {
+    if (!item) return "undefined-key"
+
+    if (item?.type === "ad") {
       return `ad-${item.id}`
     }
-    return `${item.type}-${item.format}-${item.url ? item.url.slice(-40) : ""}`
+    return `${item?.type}-${item?.format}-${item?.url ? item?.url?.slice(-40) : ""}`
   }, [])
 
   // Handle visibility changes for items (especially ads)
@@ -427,20 +431,20 @@ const App: React.FC = () => {
       // Use the pre-calculated width
       const adjustedItemWidth = getAdjustedItemWidth(isLandscape)
 
-      if (item.type === "ad") {
+      if (item?.type === "ad") {
         return (
           <PersistentAdContainer
-            id={`ad-${item.id}`}
+            id={`ad-${item?.id}`}
             width={adjustedItemWidth}
             height={300}
             renderAd={() => (
               <EnhancedNativeAdCard
                 itemWidth={adjustedItemWidth}
-                itemHeight={300}
-                key={`ad-${item.id}`}
+                itemHeight={280}
+                key={`ad-${item?.id}`}
                 isVisible={true} // Force initial visibility to true
                 viewableArea={1.0} // Assume fully visible initially
-                testID={`ad-card-${item.id}`}
+                testID={`ad-card-${item?.id}`}
               />
             )}
           />
@@ -451,12 +455,12 @@ const App: React.FC = () => {
       return (
         <MediaCard
           item={item}
-          downloadState={downloadingItems[item.url]}
+          downloadState={downloadingItems[item?.url]}
           onDownload={handleDownload}
           onCancel={handleCancelDownload}
           itemWidth={adjustedItemWidth}
           isLastInRow={(index + 1) % GRID_COLUMNS === 0}
-          isSelected={!!selectedItems[item.url]}
+          isSelected={!!selectedItems[item?.url]}
           onSelectToggle={toggleItemSelection}
           selectionMode={selectionMode}
         />
@@ -478,7 +482,7 @@ const App: React.FC = () => {
   // Optimize recent URL rendering
   const renderRecentUrlItem = useCallback(
     ({item}) => (
-      <TouchableOpacity style={styles.recentUrlItem} onPress={() => handleRecentUrlSelect(item.url)}>
+      <TouchableOpacity style={styles.recentUrlItem} onPress={() => handleRecentUrlSelect(item?.url)}>
         <Ionicons name="globe-outline" size={16} color={theme === "dark" ? "#FFC814FF" : "#4A4A4AFF"} />
         <Text
           style={[
@@ -489,9 +493,9 @@ const App: React.FC = () => {
           ]}
           numberOfLines={1}
         >
-          {item.title || item.url}
+          {item?.title || item?.url}
         </Text>
-        <Text style={styles.recentUrlTime}>{new Date(item.timestamp).toLocaleDateString()}</Text>
+        <Text style={styles.recentUrlTime}>{new Date(item?.timestamp).toLocaleDateString()}</Text>
       </TouchableOpacity>
     ),
     [handleRecentUrlSelect, theme]

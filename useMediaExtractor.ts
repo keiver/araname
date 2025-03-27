@@ -9,7 +9,7 @@ import {isDevelopmentEnvironment} from "./DomainClassifier"
 // Types
 interface MediaItem {
   url: string
-  type: "image" | "video" | "audio"
+  type: "image" | "video" | "audio" | "ad"
   filename: string
   format: string
   width?: number
