@@ -47,7 +47,7 @@ import EnhancedNativeAdCard from "./ads/EnhancedNativeAdCard"
 import {ViewabilityTrackedFlatList, EnhancedRenderItemInfo} from "./ads/ViewabilityTrackerHOC"
 import {ViewabilityTrackedFlashList} from "./ads/ViewabilityTrackerHOC"
 
-import compressAndDownloadFiles from "./useZip"
+// import compressAndDownloadFiles from "./useZip"
 import AdBanner, {AdBannerRef} from "./ads/AdBanner"
 import SettingsModal from "./Settings"
 import useIAP from "./ads/usePurchaseManager"
@@ -65,7 +65,6 @@ const App: React.FC = () => {
     media,
     downloadingItems,
     extractResources,
-    downloadMedia,
     cancelDownload,
     formatUrl,
     useWebViewExtraction,
@@ -219,44 +218,41 @@ const App: React.FC = () => {
   }, [filteredMedia, selectedItems, clearSelection, setSelectionMode, setSelectedItems])
 
   const downloadSelectedItems = useCallback(async () => {
-    if (!isDevelopmentEnvironment(recentUrls?.[0]?.url)) {
-      Alert.alert("Error", "Media download is disabled for non development environments.", [
-        {text: "OK"},
-        {
-          text: "Read More",
-          onPress: () => {
-            Linking.openURL("https://keiver.dev/lab/araname#media-download-policy")
-          }
-        }
-      ])
-      return
-    }
-
-    setZipProgress(0)
-
-    const urls = filteredMedia
-      .filter(item => selectedItems[item.url] && item.url)
-      ?.map(item => item.url)
-      .filter(Boolean) as string[]
-
-    await compressAndDownloadFiles(urls, `araname-downloaded-resources-${Date.now()}.zip`, r => {
-      console.log("Download progress", r)
-      setZipProgress(r)
-    })
-
-    if (interCoutner % 3 === 0) {
-      // Show interstitial ad every 3 downloads
-      await showInterstitialAd().then(result => {
-        if (result) {
-          setInterCounter(0) // Reset counter if ad was shown
-        }
-      })
-    } else {
-      setInterCounter(prev => prev + 1) // Increment counter if ad wasn't shown
-    }
+    // TODO: Download removed because of pokucy
+    // if (!isDevelopmentEnvironment(recentUrls?.[0]?.url)) {
+    //   Alert.alert("Error", "Media download is disabled for non development environments.", [
+    //     {text: "OK"},
+    //     {
+    //       text: "Read More",
+    //       onPress: () => {
+    //         Linking.openURL("https://keiver.dev/lab/araname#media-download-policy")
+    //       }
+    //     }
+    //   ])
+    //   return
+    // }
+    // setZipProgress(0)
+    // const urls = filteredMedia
+    //   .filter(item => selectedItems[item.url] && item.url)
+    //   ?.map(item => item.url)
+    //   .filter(Boolean) as string[]
+    // await compressAndDownloadFiles(urls, `araname-downloaded-resources-${Date.now()}.zip`, r => {
+    //   console.log("Download progress", r)
+    //   setZipProgress(r)
+    // })
+    // if (interCoutner % 3 === 0) {
+    //   // Show interstitial ad every 3 downloads
+    //   await showInterstitialAd().then(result => {
+    //     if (result) {
+    //       setInterCounter(0) // Reset counter if ad was shown
+    //     }
+    //   })
+    // } else {
+    //   setInterCounter(prev => prev + 1) // Increment counter if ad wasn't shown
+    // }
   }, [
     selectedItems,
-    compressAndDownloadFiles,
+    // compressAndDownloadFiles,
     setZipProgress,
     setInterCounter,
     interCoutner,
@@ -347,27 +343,6 @@ const App: React.FC = () => {
     }
   }, [showRecentUrls])
 
-  // Handle download action
-  const handleDownload = useCallback(
-    item => {
-      if (!isDevelopmentEnvironment(recentUrls?.[0]?.url)) {
-        Alert.alert("Error", "Media download is disabled for non development environments.", [
-          {text: "OK"},
-          {
-            text: "Read More",
-            onPress: () => {
-              Linking.openURL("https://keiver.dev/lab/araname#media-download-policy")
-            }
-          }
-        ])
-        return
-      }
-
-      downloadMedia(item)
-    },
-    [downloadMedia, recentUrls, isDevelopmentEnvironment] // Ensure we have the latest recentUrls and environment check
-  )
-
   // Handle canceling download
   const handleCancelDownload = useCallback(
     itemUrl => {
@@ -456,7 +431,7 @@ const App: React.FC = () => {
         <MediaCard
           item={item}
           downloadState={downloadingItems[item?.url]}
-          onDownload={handleDownload}
+          onDownload={() => {}}
           onCancel={handleCancelDownload}
           itemWidth={adjustedItemWidth}
           isLastInRow={(index + 1) % GRID_COLUMNS === 0}
@@ -468,7 +443,6 @@ const App: React.FC = () => {
     },
     [
       downloadingItems,
-      handleDownload,
       handleCancelDownload,
       GRID_COLUMNS,
       selectedItems,
