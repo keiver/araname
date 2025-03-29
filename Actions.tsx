@@ -18,7 +18,7 @@ interface ActionsProps {
 const Actions: React.FC<ActionsProps> = ({
   removeAdsText = "Remove Ads",
   restorePurchasesText = "Restore Purchases",
-  settingsText = "About",
+  settingsText = "About Araname",
   onRemoveAds,
   onRestorePurchases,
   onSettings
@@ -27,6 +27,7 @@ const Actions: React.FC<ActionsProps> = ({
   const [price, setPrice] = useState<string>("$0")
   const [isLoadingPrice, setIsLoadingPrice] = useState(false)
   const [isRestoring, setIsRestoring] = useState(false)
+  const [errorRetrieval, setErrorRetrieval] = useState<boolean>(false)
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -54,8 +55,11 @@ const Actions: React.FC<ActionsProps> = ({
         } else {
           console.warn("[IAP Actions] No products returned")
         }
+
+        setErrorRetrieval(false) // Set error state to true
       } catch (error) {
         console.error("[IAP Actions] Product retrieval error:", error)
+        setErrorRetrieval(true) // Set error state to true
       } finally {
         setIsLoadingPrice(false)
       }
@@ -67,7 +71,7 @@ const Actions: React.FC<ActionsProps> = ({
     return () => {
       setIsLoadingPrice(false)
     }
-  }, [isInitialized])
+  }, [isInitialized, setErrorRetrieval])
 
   const handlePurchase = useCallback(async () => {
     if (!isInitialized) {
@@ -131,13 +135,14 @@ const Actions: React.FC<ActionsProps> = ({
   // Determine display text for remove ads button
   const displayRemoveAdsText = hasNoAds ? "Ad-Free" : `${removeAdsText}${price !== "$0" ? ` • ${price}` : ""}`
 
+  const bd = isRestoring || isLoading || isLoadingPrice || !isInitialized || hasNoAds || errorRetrieval
   return (
     <View style={styles.headerContainer}>
       <View style={styles.actionsContainer}>
         <TouchableOpacity
-          style={[styles.actionButton, (hasNoAds || isLoading || isLoadingPrice) && styles.disabledButton]}
+          style={[styles.actionButton, bd && styles.disabledButton]}
           onPress={hasNoAds ? undefined : handlePurchase}
-          disabled={isLoading || isLoadingPrice || !isInitialized || hasNoAds}
+          disabled={bd}
         >
           {isLoadingPrice || isLoading ? (
             <View

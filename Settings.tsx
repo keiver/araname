@@ -11,6 +11,7 @@ import {
   Linking
 } from "react-native"
 import {Ionicons} from "@expo/vector-icons"
+import {Link} from "expo-router"
 
 // Get screen dimensions
 const {width, height} = Dimensions.get("window")
@@ -22,7 +23,7 @@ interface SettingsModalProps {
 
 const SettingsModal: React.FC<SettingsModalProps> = ({
   appVersion = "1.0.0",
-  appDescription = "A simple tool for developers and designers to inspect and analyze resources used on websites."
+  appDescription = "A simple tool for developers, designers and enthusiasts to inspect and analyze resources used on websites. The app loads the website and collects images and other media resources as seen by the browser to detect opportunities for optimization."
 }) => {
   const theme = useColorScheme()
   const isDark = theme === "dark"
@@ -35,34 +36,34 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     <ScrollView style={styles.content}>
       {/* App Description Section */}
       <View style={styles.section}>
-        <Text style={[styles.descriptionText, {color: isDark ? "#CCCCCC" : "#666"}]}>{appDescription}</Text>
+        <Text style={[styles.descriptionText, {color: isDark ? "#CCCCCC" : "#666"}]}> {appDescription}</Text>
       </View>
 
       <View style={styles.section}>
-        <TouchableOpacity
-          style={[styles.policyButton, {backgroundColor: isDark ? "#9090904D" : "#87878714"}]}
-          onPress={openPolicyPage}
-        >
-          <Ionicons name="document-text-outline" size={20} color="#317EE3FF" style={{marginRight: 8}} />
-          <Text style={[styles.policyButtonText, {color: isDark ? "#317EE3FF" : "#317EE3FF"}]}>
-            Read Download Policy
-          </Text>
-        </TouchableOpacity>
-
-        <View style={{flexDirection: "row", alignItems: "center", marginTop: 23}}>
-          <Text style={[styles.descriptionText, {color: isDark ? "#CCCCCC" : "#666", flex: 1}]}>
-            You are responsible for ensuring you have proper rights before saving or using any media resources not owned
-            by you.
-          </Text>
-        </View>
+        <Text style={[styles.descriptionText, {color: isDark ? "#CCCCCC" : "#666", flex: 1}]}>
+          You are responsible for ensuring you have proper rights before saving or using any media resources not owned
+          by you.{" "}
+          <Link
+            style={[
+              {
+                color: isDark ? "#007AFF" : "#007AFF",
+                textDecorationLine: "none",
+                fontWeight: "300"
+              }
+            ]}
+            href={"https://keiver.dev/lab/araname#media-download-policy"}
+          >
+            Read download policy here.
+          </Link>
+        </Text>
       </View>
 
-      <View style={styles.section}>
+      {/* <View style={styles.section}>
         <View style={styles.infoRow}>
           <Text style={[styles.infoLabel, {color: isDark ? "#BBBBBB" : "#969696FF"}]}>Version</Text>
           <Text style={[styles.infoValue, {color: isDark ? "#DDDDDD" : "#7C7C7CFF"}]}>{appVersion}</Text>
         </View>
-      </View>
+      </View> */}
     </ScrollView>
   )
 }

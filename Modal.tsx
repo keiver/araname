@@ -89,7 +89,12 @@ export const ReusableModal: React.FC<ReusableModalProps> = ({
 
   return (
     <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
-      <BlurView intensity={80} tint={isDark ? "dark" : "light"} style={styles.blurContainer}>
+      <BlurView
+        intensity={80}
+        tint={isDark ? "dark" : "light"}
+        style={styles.blurContainer}
+        experimentalBlurMethod="dimezisBlurView"
+      >
         <SafeAreaView style={[styles.container, {backgroundColor: colors.background}]}>
           <ModalHeader />
 
@@ -108,15 +113,27 @@ const {width, height} = Dimensions.get("window")
 const isTablet = (Platform.OS === "ios" && Platform.isPad) || (Platform.OS === "android" && width / height < 1.6)
 const isPortrait = height > width
 
+const h = () => {
+  if (Platform.OS === "android") {
+    // On Android, the height of the modal should be less than or equal to 80% of the screen height
+    // to avoid the keyboard covering the modal on some devices.
+    // This is a workaround for Android devices where the keyboard can cover the modal.
+    // Return 80% of the height for Android devices
+    return Math.min(height * 0.75, 560) // 610 is a max height to prevent it from being too tall on Android
+  }
+
+  return isTablet && isPortrait ? height * 0.4 : Math.min(height * 0.75, 560)
+}
+
 const styles = StyleSheet.create({
   blurContainer: {
     flex: 1,
     justifyContent: "center"
   },
   container: {
-    height: isTablet && isPortrait ? height * 0.4 : Math.min(height * 0.8, 610),
+    height: h(),
     overflow: "hidden",
-    width: "100%",
+    width: "90%",
     maxWidth: isTablet ? 500 : 400,
     borderRadius: 36,
     marginHorizontal: "auto"
@@ -145,7 +162,7 @@ const styles = StyleSheet.create({
     padding: 25
   },
   contentContainer: {
-    borderRadius: 12,
+    borderRadius: 23,
     overflow: "hidden",
     padding: 16,
     ...Platform.select({
@@ -156,7 +173,7 @@ const styles = StyleSheet.create({
         shadowRadius: 8
       },
       android: {
-        elevation: 2
+        elevation: 0
       }
     })
   },

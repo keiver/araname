@@ -255,7 +255,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({
 
           {copyMessage && (
             <View style={styles.formatBadge}>
-              <Text style={styles.formatBadgeText}>URL copied to clipboard</Text>
+              <Text style={styles.formatBadgeText}>URL copied</Text>
             </View>
           )}
 
@@ -326,7 +326,12 @@ export const MediaCard: React.FC<MediaCardProps> = ({
               </TouchableOpacity> */}
 
               <TouchableOpacity
-                style={[styles.actionButton]}
+                style={[
+                  styles.actionButton,
+                  {
+                    paddingTop: Platform.OS === "android" ? 3 : 1 // Adjust padding for Android to align the icon
+                  }
+                ]}
                 onPress={openInfoModal}
                 activeOpacity={isSelected ? 1 : 0.7}
               >
@@ -334,7 +339,12 @@ export const MediaCard: React.FC<MediaCardProps> = ({
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.actionButton]}
+                style={[
+                  styles.actionButton,
+                  {
+                    paddingTop: 1
+                  }
+                ]}
                 onPress={() => openImageInBrowser(item.url)}
                 activeOpacity={isSelected ? 1 : 0.7}
               >

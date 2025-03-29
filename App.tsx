@@ -411,7 +411,7 @@ const App: React.FC = () => {
           <PersistentAdContainer
             id={`ad-${item?.id}`}
             width={adjustedItemWidth}
-            height={300}
+            height={280}
             renderAd={() => (
               <EnhancedNativeAdCard
                 itemWidth={adjustedItemWidth}
@@ -709,7 +709,7 @@ const App: React.FC = () => {
                   }
                 ]}
               >
-                Enter a website URL to inspect resources
+                {loading ? "Inspecting resources..." : "Enter a website URL to inspect resources"}
               </Text>
             </TouchableWithoutFeedback>
           </View>
@@ -784,7 +784,7 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 1},
     shadowOpacity: 0.1,
     shadowRadius: 2,
-    elevation: 2
+    elevation: 0
   },
   input: {
     flex: 1,
@@ -809,7 +809,7 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 1},
     shadowOpacity: 0.1,
     shadowRadius: 2,
-    elevation: 2
+    elevation: 0
   },
   historyButton: {
     width: 36,

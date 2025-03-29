@@ -34,7 +34,11 @@ const PersistentAdContainer: React.FC<PersistentAdContainerProps> = ({id, width,
   }, [id, renderAd])
 
   // Return the cached ad component
-  return <View style={{width, height, overflow: "hidden", backgroundColor: "transparent"}}>{adComponent}</View>
+  return (
+    <View style={{borderRadius: 23, width, height, overflow: "hidden", backgroundColor: "transparent"}}>
+      {adComponent}
+    </View>
+  )
 }
 
 export default React.memo(PersistentAdContainer)

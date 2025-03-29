@@ -210,6 +210,61 @@ export const MediaInfoModal: React.FC<MediaInfoModalProps> = ({visible, item, on
     }
   }, [])
 
+  const getSvgDimensions = useCallback(async (url: string): Promise<string | null> => {
+    try {
+      // Get SVG content
+      const response = await axios.get(url, {
+        timeout: 10000,
+        responseType: "text",
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          Accept: "image/svg+xml, */*"
+        }
+      })
+
+      const svgContent = response.data
+
+      // Extract width and height attributes
+      let width: string | null = null
+      let height: string | null = null
+      let viewBox: string | null = null
+
+      // Match width attribute
+      const widthMatch = svgContent.match(/\<svg[^>]*width=["']([^"']*)["']/)
+      if (widthMatch && widthMatch[1]) width = widthMatch[1]
+
+      // Match height attribute
+      const heightMatch = svgContent.match(/\<svg[^>]*height=["']([^"']*)["']/)
+      if (heightMatch && heightMatch[1]) height = heightMatch[1]
+
+      // Match viewBox attribute
+      const viewBoxMatch = svgContent.match(/\<svg[^>]*viewBox=["']([^"']*)["']/)
+      if (viewBoxMatch && viewBoxMatch[1]) viewBox = viewBoxMatch[1]
+
+      // Calculate dimensions from viewBox if width/height not specified
+      if ((!width || !height) && viewBox) {
+        const viewBoxValues = viewBox.split(/\s+/).map(parseFloat)
+        if (viewBoxValues.length === 4) {
+          if (!width) width = String(viewBoxValues[2])
+          if (!height) height = String(viewBoxValues[3])
+        }
+      }
+
+      // Return formatted dimensions string if we have both dimensions
+      if (width && height) {
+        // Convert units if needed (remove px, em, etc.)
+        const cleanWidth = width.replace(/[^0-9.]/g, "")
+        const cleanHeight = height.replace(/[^0-9.]/g, "")
+        return `${cleanWidth} × ${cleanHeight}`
+      }
+
+      return null
+    } catch (e) {
+      console.error("Error fetching SVG dimensions:", e)
+      return null
+    }
+  }, [])
+
   // Fetch metadata using HEAD request
   const fetchMetadata = useCallback(async () => {
     if (!item) return
@@ -288,18 +343,34 @@ export const MediaInfoModal: React.FC<MediaInfoModalProps> = ({visible, item, on
 
       // If this is an image, get dimensions
       if (item.type === "image" && Platform.OS !== "web") {
-        try {
-          // This is handled separately to not block the main metadata display
-          const Image = require("react-native").Image
-          Image.getSize(
-            item.url,
-            (width: number, height: number) => {
-              setMetadata(prevMetadata => (prevMetadata ? {...prevMetadata, dimensions: `${width} × ${height}`} : null))
-            },
-            () => {} // Silently fail
-          )
-        } catch (e) {
-          // Silently fail if we can't get dimensions
+        // Check if it's an SVG image
+        const isSvg =
+          item.format.toLowerCase() === "svg" ||
+          mimeType.toLowerCase().includes("svg") ||
+          item.url.toLowerCase().endsWith(".svg")
+
+        if (isSvg) {
+          // Get SVG dimensions
+          const svgDimensions = await getSvgDimensions(item.url)
+          if (svgDimensions) {
+            setMetadata(prevMetadata => (prevMetadata ? {...prevMetadata, dimensions: svgDimensions} : null))
+          }
+        } else {
+          try {
+            // This is handled separately to not block the main metadata display
+            const Image = require("react-native").Image
+            Image.getSize(
+              item.url,
+              (width: number, height: number) => {
+                setMetadata(prevMetadata =>
+                  prevMetadata ? {...prevMetadata, dimensions: `${width} × ${height}`} : null
+                )
+              },
+              () => {} // Silently fail
+            )
+          } catch (e) {
+            // Silently fail if we can't get dimensions
+          }
         }
       }
     } catch (e) {
@@ -310,7 +381,7 @@ export const MediaInfoModal: React.FC<MediaInfoModalProps> = ({visible, item, on
     } finally {
       setIsLoading(false)
     }
-  }, [item, formatFileSize, formatDate, calculateExpiry, formatDuration])
+  }, [item, formatFileSize, formatDate, calculateExpiry, formatDuration, getSvgDimensions])
 
   // Info section component for consistency
   const InfoSection = ({title, children}: {title: string; children: React.ReactNode}) => (
@@ -335,7 +406,9 @@ export const MediaInfoModal: React.FC<MediaInfoModalProps> = ({visible, item, on
   // Info row component for consistency
   const InfoRow = ({label, value, copyable = false}: {label: string; value: string; copyable?: boolean}) => (
     <View style={styles.infoRow}>
-      <Text style={[styles.infoLabel, {color: colors.subText}]}>{label}</Text>
+      <Text style={[styles.infoLabel, {color: colors.subText}]} numberOfLines={1}>
+        {label}
+      </Text>
       <View style={styles.infoValueContainer}>
         <Text style={[styles.infoValue, {color: colors.text}]} selectable={true}>
           {value}
@@ -358,7 +431,7 @@ export const MediaInfoModal: React.FC<MediaInfoModalProps> = ({visible, item, on
     <View style={[styles.header, {backgroundColor: colors.headerBackground}]}>
       <View style={styles.headerContent}>
         <Text style={[styles.headerTitle, {color: colors.text}]}>File Information</Text>
-        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+        <TouchableOpacity onPress={onClose} style={styles.closeButton} hitSlop={44}>
           <Ionicons name="close" size={24} color={colors.text} />
         </TouchableOpacity>
       </View>
@@ -395,7 +468,12 @@ export const MediaInfoModal: React.FC<MediaInfoModalProps> = ({visible, item, on
 
   return (
     <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
-      <BlurView intensity={80} tint={isDark ? "dark" : "light"} style={styles.blurContainer}>
+      <BlurView
+        intensity={80}
+        tint={isDark ? "dark" : "light"}
+        style={styles.blurContainer}
+        experimentalBlurMethod="dimezisBlurView"
+      >
         <SafeAreaView style={[styles.container, {backgroundColor: colors.background}]}>
           <ModalHeader />
 
@@ -432,7 +510,7 @@ export const MediaInfoModal: React.FC<MediaInfoModalProps> = ({visible, item, on
                   <InfoRow label="Server" value={metadata?.server || "Unknown"} />
                   <InfoRow label="Response Time" value={metadata?.responseTime || "Unknown"} />
                   <InfoRow label="Last Modified" value={metadata?.lastModified || "Unknown"} />
-                  <InfoRow label="ETag" value={metadata?.etag || "Unknown"} />
+                  <InfoRow label="ETag" value={metadata?.etag?.replaceAll(`"`, "") || "Unknown"} />
                 </InfoSection>
 
                 <InfoSection title="Cache">
@@ -528,7 +606,7 @@ const styles = StyleSheet.create({
     marginBottom: 12
   },
   sectionContent: {
-    borderRadius: 12,
+    borderRadius: 23,
     overflow: "hidden",
     ...Platform.select({
       ios: {
@@ -538,7 +616,7 @@ const styles = StyleSheet.create({
         shadowRadius: 8
       },
       android: {
-        elevation: 2
+        elevation: 0
       }
     })
   },
@@ -550,15 +628,17 @@ const styles = StyleSheet.create({
     borderBottomColor: "rgba(0,0,0,0.1)"
   },
   infoLabel: {
-    width: "30%",
+    width: "34%",
     fontSize: 14,
-    fontWeight: "500"
+    fontWeight: "500",
+    marginRight: 8
   },
   infoValueContainer: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between"
+    justifyContent: "space-between",
+    marginRight: 4
   },
   infoValue: {
     flex: 1,

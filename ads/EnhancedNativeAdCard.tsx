@@ -209,7 +209,7 @@ const EnhancedNativeAdCard: React.FC<EnhancedNativeAdCardProps> = ({
   }
 
   return (
-    <View ref={cardRef} collapsable={false} testID={testID || "native-ad-card"}>
+    <View ref={cardRef} style={styles.m} collapsable={false} testID={testID || "native-ad-card"}>
       <NativeAdView
         style={[
           styles.container,
@@ -240,14 +240,14 @@ const EnhancedNativeAdCard: React.FC<EnhancedNativeAdCardProps> = ({
               width: dimensions.actualWidth + 1,
               marginLeft: -2, // Added this negative margin to match original
               position: "absolute",
-              bottom: 0
+              bottom: -2
             }
           ]}
         >
           <View style={styles.textContainer}>
             <NativeAsset assetType={NativeAssetType.HEADLINE}>
               <Text
-                style={[styles.headline, {color: theme === "dark" ? "#F5F5F5C9" : "#212121E6"}]}
+                style={[styles.headline, {color: theme === "dark" ? "#212121E6" : "#212121E6"}]}
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#3D3D3D21",
     borderRadius: 23,
-    overflow: Platform.OS === "android" ? "visible" : "hidden",
+    overflow: "hidden",
     marginRight: 12,
     marginBottom: 12,
     shadowColor: "#000",
@@ -319,12 +319,13 @@ const styles = StyleSheet.create({
     borderRadius: 42,
     marginTop: 14,
     alignSelf: "flex-start",
-    height: 24
+    height: 24,
+    color: "white"
   },
   callToActionText: {
     fontSize: 10,
     fontWeight: "bold",
-    color: "#2e282ae6"
+    color: "#FFFFFFFF"
   },
   adBadge: {
     backgroundColor: "#0EB2EEFF",
@@ -333,12 +334,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     height: 16,
-    borderRadius: 42
+    borderRadius: 23,
+    color: "white"
   },
   adBadgeText: {
-    color: "#2e282ae6",
+    color: "#FFFFFFFF",
     fontSize: 8,
     fontWeight: "bold"
+  },
+  m: {
+    overflow: "hidden" // Ensure no overflow from the card
   }
 })
 

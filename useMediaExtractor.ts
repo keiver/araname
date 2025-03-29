@@ -1,7 +1,6 @@
 import {useState, useEffect, useRef, useCallback} from "react"
 import axios from "axios"
 import * as FileSystem from "expo-file-system"
-import * as MediaLibrary from "expo-media-library"
 import {Alert, Share} from "react-native"
 import cheerio from "react-native-cheerio"
 import {isDevelopmentEnvironment} from "./DomainClassifier"
@@ -29,7 +28,6 @@ const useMediaExtractor = () => {
   const [loading, setLoading] = useState(false)
   const [media, setMedia] = useState<MediaItem[]>([])
   const [downloadingItems, setDownloadingItems] = useState<DownloadingItems>({})
-  const [permissionResponse, requestPermission] = MediaLibrary.usePermissions()
 
   // WebView extraction state
   const [useWebViewExtraction, setUseWebViewExtraction] = useState(false)
@@ -413,169 +411,166 @@ const useMediaExtractor = () => {
   ) // Add cleanMediaItems to the dependency array
 
   // Download media function
-  const downloadMedia = useCallback(
-    async (item: MediaItem): Promise<void> => {
-      return Promise.resolve() // Placeholder to ensure the function returns a promise
-      // // Check for existing download
-      // if (downloadingItems[item.url]?.status === "downloading") {
-      //   Alert.alert("Download in Progress", "Cancel this download?", [
-      //     {text: "Cancel Download", onPress: () => cancelDownload(item.url)},
-      //     {text: "Continue", style: "cancel"}
-      //   ])
-      //   return
-      // }
+  const downloadMedia = useCallback(async (item: MediaItem): Promise<void> => {
+    return Promise.resolve() // Placeholder to ensure the function returns a promise
+    // // Check for existing download
+    // if (downloadingItems[item.url]?.status === "downloading") {
+    //   Alert.alert("Download in Progress", "Cancel this download?", [
+    //     {text: "Cancel Download", onPress: () => cancelDownload(item.url)},
+    //     {text: "Continue", style: "cancel"}
+    //   ])
+    //   return
+    // }
 
-      // try {
-      //   // Check permissions
-      //   if (!permissionResponse?.granted) {
-      //     const permission = await requestPermission()
-      //     if (!permission.granted) {
-      //       Alert.alert("Permission Required", "Media library permission is needed.")
-      //       return
-      //     }
-      //   }
+    // try {
+    //   // Check permissions
+    //   if (!permissionResponse?.granted) {
+    //     const permission = await requestPermission()
+    //     if (!permission.granted) {
+    //       Alert.alert("Permission Required", "Media library permission is needed.")
+    //       return
+    //     }
+    //   }
 
-      //   // Initialize download state
-      //   setDownloadingItems(prev => ({
-      //     ...prev,
-      //     [item.url]: {progress: 0, status: "downloading"}
-      //   }))
+    //   // Initialize download state
+    //   setDownloadingItems(prev => ({
+    //     ...prev,
+    //     [item.url]: {progress: 0, status: "downloading"}
+    //   }))
 
-      //   // Create abort controller
-      //   const abortController = new AbortController()
-      //   abortControllersRef.current[item.url] = abortController
+    //   // Create abort controller
+    //   const abortController = new AbortController()
+    //   abortControllersRef.current[item.url] = abortController
 
-      //   // Download file
-      //   const fileUri = `${FileSystem.cacheDirectory}${item.filename}`
-      //   const downloadResumable = FileSystem.createDownloadResumable(item.url, fileUri, {}, progress => {
-      //     const downloadProgress = progress.totalBytesWritten / progress.totalBytesExpectedToWrite
-      //     setDownloadingItems(prev => ({
-      //       ...prev,
-      //       [item.url]: {progress: downloadProgress, status: "downloading"}
-      //     }))
-      //   })
+    //   // Download file
+    //   const fileUri = `${FileSystem.cacheDirectory}${item.filename}`
+    //   const downloadResumable = FileSystem.createDownloadResumable(item.url, fileUri, {}, progress => {
+    //     const downloadProgress = progress.totalBytesWritten / progress.totalBytesExpectedToWrite
+    //     setDownloadingItems(prev => ({
+    //       ...prev,
+    //       [item.url]: {progress: downloadProgress, status: "downloading"}
+    //     }))
+    //   })
 
-      //   const {uri} = await downloadResumable.downloadAsync()
+    //   const {uri} = await downloadResumable.downloadAsync()
 
-      //   // Update status to saving
-      //   setDownloadingItems(prev => ({
-      //     ...prev,
-      //     [item.url]: {progress: 1, status: "saving"}
-      //   }))
+    //   // Update status to saving
+    //   setDownloadingItems(prev => ({
+    //     ...prev,
+    //     [item.url]: {progress: 1, status: "saving"}
+    //   }))
 
-      //   try {
-      //     // Try saving to gallery
-      //     await MediaLibrary.saveToLibraryAsync(uri)
+    //   try {
+    //     // Try saving to gallery
+    //     await MediaLibrary.saveToLibraryAsync(uri)
 
-      //     // Update status to complete
-      //     setDownloadingItems(prev => ({
-      //       ...prev,
-      //       [item.url]: {progress: 1, status: "complete"}
-      //     }))
+    //     // Update status to complete
+    //     setDownloadingItems(prev => ({
+    //       ...prev,
+    //       [item.url]: {progress: 1, status: "complete"}
+    //     }))
 
-      //     // Clear status after delay
-      //     setTimeout(() => {
-      //       setDownloadingItems(prev => {
-      //         const newState = {...prev}
-      //         delete newState[item.url]
-      //         return newState
-      //       })
-      //     }, 2000)
+    //     // Clear status after delay
+    //     setTimeout(() => {
+    //       setDownloadingItems(prev => {
+    //         const newState = {...prev}
+    //         delete newState[item.url]
+    //         return newState
+    //       })
+    //     }, 2000)
 
-      //     // Alert.alert("Success", `${item.type === "image" ? "Image" : "Video"} saved to gallery`)
-      //   } catch (saveError) {
-      //     // Offer Files app as alternative
-      //     Alert.alert(
-      //       "Gallery Save Failed",
-      //       `This format may not be supported by the gallery. Save to Files instead?`,
-      //       [
-      //         {
-      //           text: "Cancel",
-      //           style: "cancel",
-      //           onPress: () => {
-      //             setDownloadingItems(prev => {
-      //               const newState = {...prev}
-      //               delete newState[item.url]
-      //               return newState
-      //             })
-      //           }
-      //         },
-      //         {
-      //           text: "Save to Files",
-      //           onPress: async () => {
-      //             try {
-      //               await Share.share({
-      //                 url: uri,
-      //                 message: `${item.filename}`
-      //               })
+    //     // Alert.alert("Success", `${item.type === "image" ? "Image" : "Video"} saved to gallery`)
+    //   } catch (saveError) {
+    //     // Offer Files app as alternative
+    //     Alert.alert(
+    //       "Gallery Save Failed",
+    //       `This format may not be supported by the gallery. Save to Files instead?`,
+    //       [
+    //         {
+    //           text: "Cancel",
+    //           style: "cancel",
+    //           onPress: () => {
+    //             setDownloadingItems(prev => {
+    //               const newState = {...prev}
+    //               delete newState[item.url]
+    //               return newState
+    //             })
+    //           }
+    //         },
+    //         {
+    //           text: "Save to Files",
+    //           onPress: async () => {
+    //             try {
+    //               await Share.share({
+    //                 url: uri,
+    //                 message: `${item.filename}`
+    //               })
 
-      //               setDownloadingItems(prev => ({
-      //                 ...prev,
-      //                 [item.url]: {progress: 1, status: "complete"}
-      //               }))
+    //               setDownloadingItems(prev => ({
+    //                 ...prev,
+    //                 [item.url]: {progress: 1, status: "complete"}
+    //               }))
 
-      //               setTimeout(() => {
-      //                 setDownloadingItems(prev => {
-      //                   const newState = {...prev}
-      //                   delete newState[item.url]
-      //                   return newState
-      //                 })
-      //               }, 2000)
-      //             } catch (shareError) {
-      //               setDownloadingItems(prev => ({
-      //                 ...prev,
-      //                 [item.url]: {progress: 0, status: "error"}
-      //               }))
+    //               setTimeout(() => {
+    //                 setDownloadingItems(prev => {
+    //                   const newState = {...prev}
+    //                   delete newState[item.url]
+    //                   return newState
+    //                 })
+    //               }, 2000)
+    //             } catch (shareError) {
+    //               setDownloadingItems(prev => ({
+    //                 ...prev,
+    //                 [item.url]: {progress: 0, status: "error"}
+    //               }))
 
-      //               setTimeout(() => {
-      //                 setDownloadingItems(prev => {
-      //                   const newState = {...prev}
-      //                   delete newState[item.url]
-      //                   return newState
-      //                 })
-      //               }, 2000)
+    //               setTimeout(() => {
+    //                 setDownloadingItems(prev => {
+    //                   const newState = {...prev}
+    //                   delete newState[item.url]
+    //                   return newState
+    //                 })
+    //               }, 2000)
 
-      //               // Alert.alert("Error", "Failed to save file") // TODO: rreview
-      //             }
-      //           }
-      //         }
-      //       ]
-      //     )
-      //   }
-      // } catch (error) {
-      //   console.error("Download error:", error)
+    //               // Alert.alert("Error", "Failed to save file") // TODO: rreview
+    //             }
+    //           }
+    //         }
+    //       ]
+    //     )
+    //   }
+    // } catch (error) {
+    //   console.error("Download error:", error)
 
-      //   if ((error as Error).message?.includes("aborted")) {
-      //     // Download was cancelled
-      //     setDownloadingItems(prev => {
-      //       const newState = {...prev}
-      //       delete newState[item.url]
-      //       return newState
-      //     })
-      //   } else {
-      //     // Other error
-      //     setDownloadingItems(prev => ({
-      //       ...prev,
-      //       [item.url]: {progress: 0, status: "error"}
-      //     }))
+    //   if ((error as Error).message?.includes("aborted")) {
+    //     // Download was cancelled
+    //     setDownloadingItems(prev => {
+    //       const newState = {...prev}
+    //       delete newState[item.url]
+    //       return newState
+    //     })
+    //   } else {
+    //     // Other error
+    //     setDownloadingItems(prev => ({
+    //       ...prev,
+    //       [item.url]: {progress: 0, status: "error"}
+    //     }))
 
-      //     setTimeout(() => {
-      //       setDownloadingItems(prev => {
-      //         const newState = {...prev}
-      //         delete newState[item.url]
-      //         return newState
-      //       })
-      //     }, 2000)
+    //     setTimeout(() => {
+    //       setDownloadingItems(prev => {
+    //         const newState = {...prev}
+    //         delete newState[item.url]
+    //         return newState
+    //       })
+    //     }, 2000)
 
-      //     Alert.alert("Error", `Download failed: ${(error as Error).message || "Unknown error"}`)
-      //   }
-      // } finally {
-      //   // Clean up abort controller
-      //   delete abortControllersRef.current[item.url]
-      // }
-    },
-    [downloadingItems, permissionResponse, requestPermission, cancelDownload]
-  )
+    //     Alert.alert("Error", `Download failed: ${(error as Error).message || "Unknown error"}`)
+    //   }
+    // } finally {
+    //   // Clean up abort controller
+    //   delete abortControllersRef.current[item.url]
+    // }
+  }, [])
 
   const resetState = useCallback(() => {
     setUrl("")

@@ -36,8 +36,8 @@ interface DraggableToolbarProps {
 
 type GestureContext = {
   startY: number
-  startX: number // Add this to track horizontal position
-  isHorizontalSwipe: boolean // Flag to track swipe direction
+  startX: number
+  isHorizontalSwipe: boolean
 }
 
 const AnimatedBlurView = Animated.createAnimatedComponent(BlurView)
@@ -50,8 +50,8 @@ export function DraggableToolbar({children, onPositionChange, initialPosition}: 
   })
 
   // Use current dimensions to calculate max offset and initial position
-  const minOffset = -10
-  const maxOffset = dimensions.height - TOOLBAR_HEIGHT
+  const minOffset = Platform.OS === "android" ? -10 : 0
+  const maxOffset = Platform.OS === "android" ? dimensions.height - 60 : dimensions.height - TOOLBAR_HEIGHT
 
   // Calculate default initialPosition based on current dimensions if not provided
   const defaultInitialPosition = dimensions.height - TOOLBAR_HEIGHT
@@ -60,6 +60,7 @@ export function DraggableToolbar({children, onPositionChange, initialPosition}: 
   const translateX = useSharedValue(0)
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [initialAnimationDone, setInitialAnimationDone] = useState(false)
+  const [activeSide, setActiveSide] = useState<"left" | "right">("right")
 
   // Listen for dimension changes (orientation changes)
   useEffect(() => {
@@ -76,117 +77,53 @@ export function DraggableToolbar({children, onPositionChange, initialPosition}: 
       }
 
       // Handle horizontal position adjustment if collapsed
-      if (isCollapsed && translateX.value > 0) {
-        translateX.value = withTiming(width - VISIBLE_PORTION, {
-          duration: 300,
-          easing: Easing.inOut(Easing.ease)
-        })
+      if (isCollapsed) {
+        if (activeSide === "right" && translateX.value > 0) {
+          translateX.value = withTiming(width - VISIBLE_PORTION, {
+            duration: 300,
+            easing: Easing.inOut(Easing.ease)
+          })
+        } else if (activeSide === "left" && translateX.value < 0) {
+          translateX.value = withTiming(-(width - VISIBLE_PORTION), {
+            duration: 300,
+            easing: Easing.inOut(Easing.ease)
+          })
+        }
       }
     })
 
     return () => subscription.remove()
-  }, [isCollapsed])
+  }, [isCollapsed, activeSide])
 
   useAnimatedReaction(
     () => translateX.value,
     value => {
-      runOnJS(setIsCollapsed)(value > 0)
+      runOnJS(setIsCollapsed)(value !== 0)
     }
   )
 
-  const handleCollapse = useCallback(() => {
+  const handleCollapseRight = useCallback(() => {
     translateX.value = withTiming(dimensions.width - VISIBLE_PORTION, {
       duration: 300,
       easing: Easing.inOut(Easing.ease)
     })
+    setActiveSide("right")
+  }, [dimensions.width])
+
+  const handleCollapseLeft = useCallback(() => {
+    translateX.value = withTiming(-(dimensions.width - VISIBLE_PORTION), {
+      duration: 300,
+      easing: Easing.inOut(Easing.ease)
+    })
+    setActiveSide("left")
   }, [dimensions.width])
 
   const handleExpand = useCallback(() => {
-    if (translateX.value > 0) {
-      translateX.value = withTiming(0, {
-        duration: 300,
-        easing: Easing.inOut(Easing.ease)
-      })
-    }
+    translateX.value = withTiming(0, {
+      duration: 300,
+      easing: Easing.inOut(Easing.ease)
+    })
   }, [])
-
-  const panGestureHandler = useAnimatedGestureHandler({
-    onStart: (event, context: GestureContext) => {
-      context.startY = translateY.value
-      context.startX = translateX.value
-      context.isHorizontalSwipe = false
-    },
-    onActive: (event, context) => {
-      // Determine if this is primarily a horizontal or vertical gesture
-      // We do this by checking which has greater magnitude
-      if (!context.isHorizontalSwipe && Math.abs(event.translationX) < Math.abs(event.translationY)) {
-        // Vertical gesture - keep existing behavior
-        const newPosition = context.startY + event.translationY
-        translateY.value = Math.max(minOffset, Math.min(maxOffset, newPosition))
-
-        if (onPositionChange) {
-          runOnJS(handlePositionChange)(translateY.value)
-        }
-      } else {
-        // Horizontal gesture
-        context.isHorizontalSwipe = true
-
-        // Check direction of swipe
-        if (context.startX === 0) {
-          // Panel is expanded, handle collapsing
-          const newX = Math.max(0, event.translationX)
-          if (newX > dimensions.width / 4) {
-            // If swiped more than 1/4 of screen width, snap to collapsed state
-            translateX.value = withTiming(dimensions.width - VISIBLE_PORTION, {
-              duration: 300,
-              easing: Easing.inOut(Easing.ease)
-            })
-          } else {
-            // Otherwise, follow finger
-            translateX.value = newX
-          }
-        } else {
-          // Panel is collapsed, handle expanding
-          const newX = Math.max(0, context.startX + event.translationX)
-          if (newX < dimensions.width - VISIBLE_PORTION - dimensions.width / 4) {
-            // If swiped more than 1/4 of screen width toward left, snap to expanded state
-            translateX.value = withTiming(0, {
-              duration: 300,
-              easing: Easing.inOut(Easing.ease)
-            })
-          } else {
-            // Otherwise, follow finger but don't go past fully expanded
-            translateX.value = Math.min(dimensions.width - VISIBLE_PORTION, newX)
-          }
-        }
-      }
-    },
-    onEnd: (event, context) => {
-      if (context.isHorizontalSwipe) {
-        // Horizontal gesture ended - snap to expanded or collapsed state
-        if (translateX.value > (dimensions.width - VISIBLE_PORTION) / 2) {
-          // Collapse if dragged more than halfway
-          translateX.value = withTiming(dimensions.width - VISIBLE_PORTION, {
-            duration: 300,
-            easing: Easing.inOut(Easing.ease)
-          })
-          runOnJS(setIsCollapsed)(true)
-        } else {
-          // Expand
-          translateX.value = withTiming(0, {
-            duration: 300,
-            easing: Easing.inOut(Easing.ease)
-          })
-          runOnJS(setIsCollapsed)(false)
-        }
-      } else {
-        // Vertical gesture ended - keep existing behavior
-        if (translateX.value === 0) {
-          translateY.value = withSpring(Math.max(minOffset, Math.min(maxOffset, translateY.value)), SPRING_CONFIG)
-        }
-      }
-    }
-  })
 
   const handlePositionChange = useCallback(
     (position: number) => {
@@ -195,16 +132,167 @@ export function DraggableToolbar({children, onPositionChange, initialPosition}: 
     [onPositionChange]
   )
 
+  // Enhanced gesture handler with side-switching support
+  const panGestureHandler = useAnimatedGestureHandler({
+    onStart: (event, context: GestureContext) => {
+      context.startY = translateY.value
+      context.startX = translateX.value
+      context.isHorizontalSwipe = false
+    },
+    onActive: (event, context) => {
+      // Determine horizontal or vertical movement - use a threshold
+      const DIRECTION_THRESHOLD = 10
+
+      if (
+        !context.isHorizontalSwipe &&
+        (Math.abs(event.translationX) > DIRECTION_THRESHOLD || Math.abs(event.translationY) > DIRECTION_THRESHOLD)
+      ) {
+        // Set swipe direction once it's clear
+        context.isHorizontalSwipe = Math.abs(event.translationX) > Math.abs(event.translationY)
+      }
+
+      if (!context.isHorizontalSwipe) {
+        // VERTICAL GESTURE - Fix for Android
+        const newPosition = context.startY + event.translationY
+        translateY.value = Math.max(minOffset, Math.min(maxOffset, newPosition))
+
+        if (onPositionChange) {
+          runOnJS(handlePositionChange)(translateY.value)
+        }
+      } else {
+        // HORIZONTAL GESTURE - Enhanced with side switching
+        if (context.startX === 0) {
+          // Panel is expanded, handle collapsing to either side
+          if (event.translationX > 0) {
+            // Swiping right - collapse to right
+            const newX = Math.max(0, event.translationX)
+            translateX.value = newX
+
+            if (newX > dimensions.width / 4) {
+              // If dragged far enough, snap to right side
+              translateX.value = withTiming(dimensions.width - VISIBLE_PORTION, {
+                duration: 300,
+                easing: Easing.inOut(Easing.ease)
+              })
+              runOnJS(setActiveSide)("right")
+            }
+          } else if (event.translationX < 0) {
+            // Swiping left - collapse to left
+            const newX = Math.min(0, event.translationX)
+            translateX.value = newX
+
+            if (newX < -dimensions.width / 4) {
+              // If dragged far enough, snap to left side
+              translateX.value = withTiming(-(dimensions.width - VISIBLE_PORTION), {
+                duration: 300,
+                easing: Easing.inOut(Easing.ease)
+              })
+              runOnJS(setActiveSide)("left")
+            }
+          }
+        } else if (context.startX > 0) {
+          // Panel is collapsed to right, handle expanding
+          const newX = Math.max(0, context.startX + event.translationX)
+          if (event.translationX < -dimensions.width / 4) {
+            // Fast swipe left - expand
+            translateX.value = withTiming(0, {
+              duration: 300,
+              easing: Easing.inOut(Easing.ease)
+            })
+          } else {
+            // Follow finger
+            translateX.value = Math.min(dimensions.width - VISIBLE_PORTION, newX)
+          }
+        } else if (context.startX < 0) {
+          // Panel is collapsed to left, handle expanding
+          const newX = Math.min(0, context.startX + event.translationX)
+          if (event.translationX > dimensions.width / 4) {
+            // Fast swipe right - expand
+            translateX.value = withTiming(0, {
+              duration: 300,
+              easing: Easing.inOut(Easing.ease)
+            })
+          } else {
+            // Follow finger
+            translateX.value = Math.max(-(dimensions.width - VISIBLE_PORTION), newX)
+          }
+        }
+      }
+    },
+    onEnd: (event, context) => {
+      if (context.isHorizontalSwipe) {
+        // Complete horizontal gesture with snapping
+        if (translateX.value === 0) {
+          // Currently expanded - determine which way to collapse
+          if (event.translationX > dimensions.width / 4) {
+            // Collapse to right
+            translateX.value = withTiming(dimensions.width - VISIBLE_PORTION, {
+              duration: 300,
+              easing: Easing.inOut(Easing.ease)
+            })
+            runOnJS(setActiveSide)("right")
+          } else if (event.translationX < -dimensions.width / 4) {
+            // Collapse to left
+            translateX.value = withTiming(-(dimensions.width - VISIBLE_PORTION), {
+              duration: 300,
+              easing: Easing.inOut(Easing.ease)
+            })
+            runOnJS(setActiveSide)("left")
+          } else {
+            // Not enough movement, stay expanded
+            translateX.value = withTiming(0, {
+              duration: 300,
+              easing: Easing.inOut(Easing.ease)
+            })
+          }
+        } else if (translateX.value > 0) {
+          // Currently collapsed to right or partially moved
+          if (translateX.value < (dimensions.width - VISIBLE_PORTION) / 2) {
+            // Expand if dragged more than halfway
+            translateX.value = withTiming(0, {
+              duration: 300,
+              easing: Easing.inOut(Easing.ease)
+            })
+          } else {
+            // Stay collapsed to right
+            translateX.value = withTiming(dimensions.width - VISIBLE_PORTION, {
+              duration: 300,
+              easing: Easing.inOut(Easing.ease)
+            })
+          }
+        } else if (translateX.value < 0) {
+          // Currently collapsed to left or partially moved
+          if (translateX.value > -(dimensions.width - VISIBLE_PORTION) / 2) {
+            // Expand if dragged more than halfway
+            translateX.value = withTiming(0, {
+              duration: 300,
+              easing: Easing.inOut(Easing.ease)
+            })
+          } else {
+            // Stay collapsed to left
+            translateX.value = withTiming(-(dimensions.width - VISIBLE_PORTION), {
+              duration: 300,
+              easing: Easing.inOut(Easing.ease)
+            })
+          }
+        }
+      } else {
+        // Complete vertical gesture with spring animation
+        translateY.value = withSpring(Math.max(minOffset, Math.min(maxOffset, translateY.value)), SPRING_CONFIG)
+      }
+    }
+  })
+
   useEffect(() => {
     if (!initialAnimationDone) {
       const timer = setTimeout(() => {
-        handleCollapse() // Use the existing collapse function
+        handleCollapseRight()
         setInitialAnimationDone(true)
       }, 3000)
 
       return () => clearTimeout(timer)
     }
-  }, [initialAnimationDone, handleCollapse])
+  }, [initialAnimationDone, handleCollapseRight])
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{translateY: translateY.value}, {translateX: translateX.value}]
@@ -221,7 +309,11 @@ export function DraggableToolbar({children, onPositionChange, initialPosition}: 
           onPress={isCollapsed ? handleExpand : undefined}
           activeOpacity={isCollapsed ? 0.6 : 1}
         >
-          <PanGestureHandler onGestureEvent={panGestureHandler}>
+          <PanGestureHandler
+            onGestureEvent={panGestureHandler}
+            minDist={5} // Lower threshold for gesture detection on Android
+            avgTouches // More stable gesture recognition on Android
+          >
             <Animated.View style={styles.gestureContainer}>
               <AnimatedBlurView
                 intensity={100}
@@ -229,22 +321,45 @@ export function DraggableToolbar({children, onPositionChange, initialPosition}: 
                 style={[
                   styles.blurContainer,
                   {
-                    borderRadius: isCollapsed && translateX.value !== 0 ? 36 : 0
+                    borderRadius: isCollapsed ? 36 : 0,
+                    borderTopLeftRadius: activeSide === "right" ? (isCollapsed ? 36 : 0) : 0,
+                    borderBottomLeftRadius: activeSide === "right" ? (isCollapsed ? 36 : 0) : 0,
+                    borderTopRightRadius: activeSide === "left" ? (isCollapsed ? 36 : 0) : 0,
+                    borderBottomRightRadius: activeSide === "left" ? (isCollapsed ? 36 : 0) : 0
                   }
                 ]}
               >
-                <TouchableOpacity
-                  style={styles.closeButton}
-                  onPress={handleCollapse}
-                  hitSlop={{top: 10, right: 10, bottom: 10, left: 10}}
-                >
-                  <Right color="#FFC312" />
-                </TouchableOpacity>
+                {/* Close buttons - different sides */}
+                {!isCollapsed && (
+                  <>
+                    <TouchableOpacity
+                      style={styles.closeButtonRight}
+                      onPress={handleCollapseRight}
+                      hitSlop={{top: 10, right: 10, bottom: 10, left: 10}}
+                    >
+                      <Right color="#FFC312" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.closeButtonLeft}
+                      onPress={handleCollapseLeft}
+                      hitSlop={{top: 10, right: 10, bottom: 10, left: 10}}
+                    >
+                      <Left color="#FFC312" />
+                    </TouchableOpacity>
+                  </>
+                )}
 
                 <View style={styles.content}>{children}</View>
-                {isCollapsed && (
-                  <View style={styles.expandButton}>
+
+                {/* Expand buttons - show based on which side is active */}
+                {isCollapsed && activeSide === "right" && (
+                  <View style={styles.expandButtonLeft}>
                     <Left color="#FFC312" />
+                  </View>
+                )}
+                {isCollapsed && activeSide === "left" && (
+                  <View style={styles.expandButtonRight}>
+                    <Right color="#FFC312" />
                   </View>
                 )}
               </AnimatedBlurView>
@@ -278,15 +393,14 @@ const styles = StyleSheet.create({
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: Platform.OS === "android" ? "rgba(0, 0, 0, 0.7)" : "rgba(0, 0, 0, 0.5)", // Darker background for Android
     shadowColor: "#fff",
     shadowOffset: {width: 13, height: 16},
     shadowOpacity: 0.9,
     shadowRadius: 14,
-    elevation: 0
-    // paddingTop: 40
+    elevation: Platform.OS === "android" ? 8 : 0 // Increased elevation for Android
   },
-  closeButton: {
+  closeButtonRight: {
     position: "absolute",
     top: 0,
     right: 4,
@@ -300,7 +414,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center"
   },
-  expandButton: {
+  closeButtonLeft: {
     position: "absolute",
     top: 0,
     left: 4,
@@ -312,14 +426,40 @@ const styles = StyleSheet.create({
     opacity: 0.8,
     display: "flex",
     justifyContent: "center",
-    alignItems: "center",
-    paddingLeft: -14
+    alignItems: "center"
+  },
+  expandButtonLeft: {
+    position: "absolute",
+    top: 0,
+    left: 4,
+    height: TOOLBAR_HEIGHT,
+    zIndex: 2,
+    backgroundColor: "transparent",
+    padding: 10,
+    width: 35,
+    opacity: 0.8,
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center"
+  },
+  expandButtonRight: {
+    position: "absolute",
+    top: 0,
+    right: 4,
+    height: TOOLBAR_HEIGHT,
+    zIndex: 2,
+    backgroundColor: "transparent",
+    padding: 10,
+    width: 35,
+    opacity: 0.8,
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center"
   },
   content: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center"
-    // paddingTop: 24
   },
   handleContainer: {
     top: 14,
