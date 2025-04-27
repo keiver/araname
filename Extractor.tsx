@@ -283,12 +283,33 @@ const InvisibleWebViewExtractor = ({
 
       // Helper to determine format from filename
       const getFormatFromFilename = (filename) => {
-        const lowerFilename = filename.toLowerCase();
-        if (lowerFilename.endsWith('.svg')) return 'svg';
-        if (lowerFilename.endsWith('.webp')) return 'webp';
-        if (lowerFilename.endsWith('.gif')) return 'gif';
-        return 'standard';
-      };
+      if (!filename) return 'standard';
+      
+      const lowerFilename = filename.toLowerCase();
+      
+      // Image formats - Added PNG and other common formats
+      if (lowerFilename.endsWith('.png')) return 'png';  // Added PNG detection
+      if (lowerFilename.endsWith('.jpg') || lowerFilename.endsWith('.jpeg')) return 'jpeg';
+      if (lowerFilename.endsWith('.svg')) return 'svg';
+      if (lowerFilename.endsWith('.webp')) return 'webp';
+      if (lowerFilename.endsWith('.gif')) return 'gif';
+      if (lowerFilename.endsWith('.bmp')) return 'bmp';
+      if (lowerFilename.endsWith('.tiff') || lowerFilename.endsWith('.tif')) return 'tiff';
+      
+      // Video formats
+      if (lowerFilename.endsWith('.mp4')) return 'mp4';
+      if (lowerFilename.endsWith('.webm')) return 'webm';
+      if (lowerFilename.endsWith('.ogg') || lowerFilename.endsWith('.ogv')) return 'ogg';
+      if (lowerFilename.endsWith('.mov')) return 'mov';
+      
+      // Audio formats
+      if (lowerFilename.endsWith('.mp3')) return 'mp3';
+      if (lowerFilename.endsWith('.wav')) return 'wav';
+      if (lowerFilename.endsWith('.m4a')) return 'm4a';
+      
+      // Default for unknown formats
+      return 'standard';
+    };
 
       // Check if URL is valid for extraction
       const isValidUrl = (url) => {
@@ -344,14 +365,22 @@ const InvisibleWebViewExtractor = ({
               if (!processedUrls.has(src)) {
                 processedUrls.add(src);
                 const filename = sanitizeFilename(src, 'image');
+                
                 mediaItems.push({
                   url: src,
                   type: 'image',
                   filename,
                   format: getFormatFromFilename(filename),
                   width: img.naturalWidth || undefined,
-                  height: img.naturalHeight || undefined
+                  height: img.naturalHeight || undefined,
+                  // Add debug info to help troubleshoot format detection
+                  debug: {
+                    originalFilename: filename,
+                    detectedFormat: getFormatFromFilename(filename),
+                    fileExtension: filename.split('.').pop()?.toLowerCase()
+                  }
                 });
+
               }
             });
             
@@ -589,6 +618,15 @@ const InvisibleWebViewExtractor = ({
           stats: {
             totalItems: mediaItems.length,
             imageCount: mediaItems.filter(item => item.type === 'image').length,
+            pngCount: mediaItems.filter(item => item.format === 'png').length,
+            jpegCount: mediaItems.filter(item => item.format === 'jpeg').length,
+            svgCount: mediaItems.filter(item => item.format === 'svg').length,
+            gifCount: mediaItems.filter(item => item.format === 'gif').length,
+            webpCount: mediaItems.filter(item => item.format === 'webp').length,
+            otherImageCount: mediaItems.filter(item => 
+              item.type === 'image' && 
+              !['png', 'jpeg', 'svg', 'gif', 'webp'].includes(item.format)
+            ).length,
             videoCount: mediaItems.filter(item => item.type === 'video').length,
             audioCount: mediaItems.filter(item => item.type === 'audio').length
           }

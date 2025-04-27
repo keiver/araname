@@ -92,8 +92,8 @@ android {
         applicationId 'dev.keiver.araname'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1152
-        versionName "1.1.5"
+        versionCode 1161
+        versionName "1.1.6"
     }
     signingConfigs {
         debug {

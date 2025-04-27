@@ -117,33 +117,25 @@ const useMediaExtractor = () => {
     }
   }
 
-  // Add this cleaning function right after your getFormatFromFilename function
-  // Enhance the filtering in the cleanMediaItems function
   const cleanMediaItems = useCallback((items: MediaItem[]): MediaItem[] => {
     return items.filter(item => {
-      // Filter out items with malformed or incomplete URLs
       if (!item.url || item.url.length < 8 || !item.url.includes("://")) {
         return false
       }
 
-      // Filter out data URIs
       if (item.url.startsWith("data:")) {
         return false
       }
 
-      // Ensure all required properties exist
       if (!item.type || !item.filename || !item.format) {
         return false
       }
 
-      // Extract the file extension from the filename
       const filenameParts = item.filename.split(".")
       const extension = filenameParts.length > 1 ? `.${filenameParts[filenameParts.length - 1].toLowerCase()}` : ""
 
-      // Validate extensions based on media type
       if (item.type === "image") {
         const validImageExtensions = [
-          // Common web formats
           ".jpg",
           ".jpeg",
           ".png",
@@ -152,7 +144,6 @@ const useMediaExtractor = () => {
           ".svg",
           ".bmp",
           ".avif",
-          // Less common but valid web formats
           ".ico",
           ".tiff",
           ".tif",
@@ -162,69 +153,37 @@ const useMediaExtractor = () => {
           ".jpx",
           ".j2k",
           ".jxr",
-          // High efficiency formats
           ".heic",
           ".heif",
-          // Specialized but sometimes found on web
           ".apng",
           ".pjpeg",
           ".wbmp",
           ".xbm"
         ]
 
+        if (item.format === "png" || extension === ".png") {
+          return true
+        }
+
         if (!extension || !validImageExtensions.includes(extension)) {
           return false
         }
       } else if (item.type === "video") {
-        // Allow embedded videos without extensions
         if (item.isEmbed) return true
 
-        const validVideoExtensions = [
-          ".mp4",
-          ".webm",
-          ".ogg",
-          ".ogv",
-          ".mov",
-          ".avi",
-          ".wmv",
-          ".flv",
-          ".mkv",
-          ".m4v",
-          ".mpg",
-          ".mpeg",
-          ".3gp",
-          ".3g2",
-          ".ts",
-          ".mts",
-          ".m2ts"
-        ]
+        const validVideoExtensions = [".mp4", ".webm", ".ogg", ".ogv", ".mov", ".avi", ".wmv", ".flv", ".mkv", ".m4v", ".mpg", ".mpeg", ".3gp", ".3g2", ".ts", ".mts", ".m2ts"]
 
         if (!extension || !validVideoExtensions.includes(extension)) {
           return false
         }
       } else if (item.type === "audio") {
-        const validAudioExtensions = [
-          ".mp3",
-          ".wav",
-          ".ogg",
-          ".oga",
-          ".m4a",
-          ".aac",
-          ".flac",
-          ".wma",
-          ".opus",
-          ".mid",
-          ".midi",
-          ".aiff",
-          ".alac"
-        ]
+        const validAudioExtensions = [".mp3", ".wav", ".ogg", ".oga", ".m4a", ".aac", ".flac", ".wma", ".opus", ".mid", ".midi", ".aiff", ".alac"]
 
         if (!extension || !validAudioExtensions.includes(extension)) {
           return false
         }
       }
 
-      // Filter out items with missing or invalid dimensions (if they're provided)
       if (item.width !== undefined && item.height !== undefined) {
         if (item.width <= 0 || item.height <= 0 || Number.isNaN(item.width) || Number.isNaN(item.height)) {
           return false
@@ -235,16 +194,33 @@ const useMediaExtractor = () => {
     })
   }, [])
 
-  // Helper to determine format from filename
   const getFormatFromFilename = (filename: string): string => {
     const lowerFilename = filename.toLowerCase()
     if (lowerFilename.endsWith(".svg")) return "svg"
     if (lowerFilename.endsWith(".webp")) return "webp"
     if (lowerFilename.endsWith(".gif")) return "gif"
+    if (lowerFilename.endsWith(".mp4")) return "mp4"
+    if (lowerFilename.endsWith(".jpg") || lowerFilename.endsWith(".jpeg")) return "jpeg"
+    if (lowerFilename.endsWith(".png")) return "png"
+    if (lowerFilename.endsWith(".bmp")) return "bmp"
+    if (lowerFilename.endsWith(".tiff") || lowerFilename.endsWith(".tif")) return "tiff"
+    if (lowerFilename.endsWith(".ico")) return "ico"
+    if (lowerFilename.endsWith(".avif")) return "avif"
+    if (lowerFilename.endsWith(".heic") || lowerFilename.endsWith(".heif")) return "heic"
+    if (lowerFilename.endsWith(".mp3")) return "mp3"
+    if (lowerFilename.endsWith(".wav")) return "wav"
+    if (lowerFilename.endsWith(".ogg")) return "ogg"
+    if (lowerFilename.endsWith(".oga")) return "oga"
+    if (lowerFilename.endsWith(".aac")) return "aac"
+    if (lowerFilename.endsWith(".flac")) return "flac"
+    if (lowerFilename.endsWith(".wma")) return "wma"
+    if (lowerFilename.endsWith(".opus")) return "opus"
+    if (lowerFilename.endsWith(".mid") || lowerFilename.endsWith(".midi")) return "midi"
+    if (lowerFilename.endsWith(".aiff") || lowerFilename.endsWith(".alac")) return "aiff"
+    if (lowerFilename.endsWith(".webm")) return "webm"
     return "standard"
   }
 
-  // Extract media resources from a URL
   const extractResources = useCallback(
     async (useWebView = false): Promise<void> => {
       if (!validateUrl(url)) {
@@ -252,24 +228,18 @@ const useMediaExtractor = () => {
         return
       }
 
-      // Setting state for extraction start
       setLoading(true)
       setMedia([])
       uniqueUrls.current.clear()
       cancelAllDownloads()
 
-      // Set WebView extraction state
       setUseWebViewExtraction(useWebView)
       setExtractionInProgress(true)
 
-      // If using WebView extraction, the component will handle it
       if (useWebView) {
-        // WebView extraction will be handled by the component
-        // which will call handleWebViewResults when complete
         return
       }
 
-      // Server-side extraction logic
       if (extractionController.current) {
         extractionController.current.abort()
       }
@@ -279,7 +249,6 @@ const useMediaExtractor = () => {
       try {
         const formattedUrl = formatUrl(url)
 
-        // Fetch HTML with timeout
         const response = await axios.get(formattedUrl, {
           timeout: 15000,
           signal: extractionController.current.signal,
@@ -292,12 +261,7 @@ const useMediaExtractor = () => {
         const $ = cheerio.load(html)
         const mediaItems: MediaItem[] = []
 
-        // Create a single efficient media extractor function
-        const extractMedia = (
-          selector: string,
-          getUrl: ($el: cheerio.Cheerio) => string | undefined,
-          type: "image" | "video"
-        ): void => {
+        const extractMedia = (selector: string, getUrl: ($el: cheerio.Cheerio) => string | undefined, type: "image" | "video"): void => {
           $(selector).each((_, element) => {
             const $el = $(element)
             const sourceUrl = getUrl($el)
@@ -325,7 +289,6 @@ const useMediaExtractor = () => {
           })
         }
 
-        // Process in batches to avoid UI freezing - extract all media types at once
         await new Promise<void>(resolve => {
           setTimeout(() => {
             // Images - direct src
