@@ -117,43 +117,33 @@ const useMediaExtractor = () => {
     }
   }
 
-  // Add this cleaning function right after your getFormatFromFilename function
-  // Enhance the filtering in the cleanMediaItems function
-  // Enhance the filtering in the cleanMediaItems function
   const cleanMediaItems = useCallback((items: MediaItem[]): MediaItem[] => {
     return items.filter(item => {
-      // Filter out items with malformed or incomplete URLs
       if (!item.url || item.url.length < 8 || !item.url.includes("://")) {
         return false
       }
 
-      // Filter out data URIs
       if (item.url.startsWith("data:")) {
         return false
       }
 
-      // Ensure all required properties exist
       if (!item.type || !item.filename || !item.format) {
         return false
       }
 
-      // Extract the file extension from the filename
       const filenameParts = item.filename.split(".")
       const extension = filenameParts.length > 1 ? `.${filenameParts[filenameParts.length - 1].toLowerCase()}` : ""
 
-      // Validate extensions based on media type
       if (item.type === "image") {
         const validImageExtensions = [
-          // Common web formats
           ".jpg",
           ".jpeg",
-          ".png", // Ensure PNG is included
+          ".png",
           ".gif",
           ".webp",
           ".svg",
           ".bmp",
           ".avif",
-          // Less common but valid web formats
           ".ico",
           ".tiff",
           ".tif",
@@ -163,17 +153,14 @@ const useMediaExtractor = () => {
           ".jpx",
           ".j2k",
           ".jxr",
-          // High efficiency formats
           ".heic",
           ".heif",
-          // Specialized but sometimes found on web
           ".apng",
           ".pjpeg",
           ".wbmp",
           ".xbm"
         ]
 
-        // Special case for PNG files to ensure they're not filtered out
         if (item.format === "png" || extension === ".png") {
           return true
         }
@@ -182,7 +169,6 @@ const useMediaExtractor = () => {
           return false
         }
       } else if (item.type === "video") {
-        // Allow embedded videos without extensions
         if (item.isEmbed) return true
 
         const validVideoExtensions = [".mp4", ".webm", ".ogg", ".ogv", ".mov", ".avi", ".wmv", ".flv", ".mkv", ".m4v", ".mpg", ".mpeg", ".3gp", ".3g2", ".ts", ".mts", ".m2ts"]
@@ -198,7 +184,6 @@ const useMediaExtractor = () => {
         }
       }
 
-      // Filter out items with missing or invalid dimensions (if they're provided)
       if (item.width !== undefined && item.height !== undefined) {
         if (item.width <= 0 || item.height <= 0 || Number.isNaN(item.width) || Number.isNaN(item.height)) {
           return false
@@ -209,7 +194,6 @@ const useMediaExtractor = () => {
     })
   }, [])
 
-  // Helper to determine format from filename
   const getFormatFromFilename = (filename: string): string => {
     const lowerFilename = filename.toLowerCase()
     if (lowerFilename.endsWith(".svg")) return "svg"
@@ -237,7 +221,6 @@ const useMediaExtractor = () => {
     return "standard"
   }
 
-  // Extract media resources from a URL
   const extractResources = useCallback(
     async (useWebView = false): Promise<void> => {
       if (!validateUrl(url)) {
@@ -245,24 +228,18 @@ const useMediaExtractor = () => {
         return
       }
 
-      // Setting state for extraction start
       setLoading(true)
       setMedia([])
       uniqueUrls.current.clear()
       cancelAllDownloads()
 
-      // Set WebView extraction state
       setUseWebViewExtraction(useWebView)
       setExtractionInProgress(true)
 
-      // If using WebView extraction, the component will handle it
       if (useWebView) {
-        // WebView extraction will be handled by the component
-        // which will call handleWebViewResults when complete
         return
       }
 
-      // Server-side extraction logic
       if (extractionController.current) {
         extractionController.current.abort()
       }
@@ -272,7 +249,6 @@ const useMediaExtractor = () => {
       try {
         const formattedUrl = formatUrl(url)
 
-        // Fetch HTML with timeout
         const response = await axios.get(formattedUrl, {
           timeout: 15000,
           signal: extractionController.current.signal,
@@ -285,7 +261,6 @@ const useMediaExtractor = () => {
         const $ = cheerio.load(html)
         const mediaItems: MediaItem[] = []
 
-        // Create a single efficient media extractor function
         const extractMedia = (selector: string, getUrl: ($el: cheerio.Cheerio) => string | undefined, type: "image" | "video"): void => {
           $(selector).each((_, element) => {
             const $el = $(element)
@@ -314,7 +289,6 @@ const useMediaExtractor = () => {
           })
         }
 
-        // Process in batches to avoid UI freezing - extract all media types at once
         await new Promise<void>(resolve => {
           setTimeout(() => {
             // Images - direct src
