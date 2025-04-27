@@ -39,7 +39,7 @@ export default class AdManager {
   private initialRenderIds: Set<string> = new Set() // Track IDs of ads in initial render
 
   // Configuration
-  private adInterval: number = 10 // Show ad every 10 items (was 6)
+  private adInterval: number = 50 // Show ad every 10 items (was 6)
   private requestThrottleMs: number = 2000 // 2 seconds between requests
   private maxConcurrentRequests: number = 1 // Only one request at a time
   private adPoolSize: number = 2 // Keep 2 ads preloaded (was 3)

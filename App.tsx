@@ -23,11 +23,7 @@ import * as Haptics from "expo-haptics"
 import {Ionicons} from "@expo/vector-icons"
 
 // Ignore specific warnings
-LogBox.ignoreLogs([
-  "Sending `onAnimatedValueUpdate` with no listeners registered.",
-  "[runtime not ready]",
-  "The native view manager required by name (ExpoClipboard)"
-])
+LogBox.ignoreAllLogs(true)
 
 // Import our custom hook
 import useMediaExtractor from "./useMediaExtractor"
@@ -441,16 +437,7 @@ const App: React.FC = () => {
         />
       )
     },
-    [
-      downloadingItems,
-      handleCancelDownload,
-      GRID_COLUMNS,
-      selectedItems,
-      toggleItemSelection,
-      selectionMode,
-      isLandscape,
-      getAdjustedItemWidth
-    ]
+    [downloadingItems, handleCancelDownload, GRID_COLUMNS, selectedItems, toggleItemSelection, selectionMode, isLandscape, getAdjustedItemWidth]
   )
 
   // Optimize recent URL rendering
@@ -513,22 +500,64 @@ const App: React.FC = () => {
             {
               width: "100%",
               textAlign: "center",
+              paddingHorizontal: 26,
               opacity: 0.7,
+              fontWeight: "thin",
               marginBottom: 5,
-              marginTop: 10
+              marginTop: 10,
+              fontSize: 28,
+              paddingVertical: 24,
+              textShadowColor: theme === "dark" ? "#000000FF" : "#FFFFFF",
+              textShadowOffset: {width: 0, height: 1},
+              textShadowRadius: 1
             },
             {color: theme === "dark" ? "#FFC814FF" : "#000000FF"}
           ]}
         >
-          Araname - Web Resources Inspector
+          Araname
+          <Text
+            style={[
+              {
+                width: "100%",
+                textAlign: "center",
+                paddingHorizontal: 26,
+                opacity: 0.7,
+                fontWeight: "thin",
+                marginBottom: 5,
+                marginTop: 10,
+                fontSize: 16,
+                paddingVertical: 24
+              },
+              {color: theme === "dark" ? "#FFC814FF" : "#000000FF"}
+            ]}
+          >
+            _ Inspect images in your website
+          </Text>
         </Text>
         {/* Search input */}
         <View style={styles.searchContainer}>
           <View style={[styles.inputWrapper, {backgroundColor: theme === "dark" ? "#8F8E8E58" : "#E0E0EFFF"}]}>
+            {url.length > 0 && (
+              <TouchableOpacity
+                disabled={loading}
+                style={[
+                  styles.historyButton,
+                  {
+                    opacity: loading ? 0.5 : 1,
+                    backgroundColor: theme === "dark" ? "#FFC8142C" : "#2e282ae6",
+                    transform: [{translateX: 8}]
+                  }
+                ]}
+                onPress={() => setUrl("")}
+              >
+                <Ionicons name="close-circle-outline" size={22} color={theme === "dark" ? "#FFC8148A" : "#FFC814FF"} />
+              </TouchableOpacity>
+            )}
+
             <TextInput
               ref={inputRef}
               style={[styles.input, {color: theme === "dark" ? "#FFC814FF" : "#4A4A4AFF"}]}
-              placeholder="https://localhost"
+              placeholder="https://example.com"
               value={url}
               onChangeText={setUrl}
               autoCapitalize="none"
@@ -539,9 +568,11 @@ const App: React.FC = () => {
 
             {recentUrls.length > 0 && (
               <TouchableOpacity
+                disabled={loading}
                 style={[
                   styles.historyButton,
                   {
+                    opacity: loading ? 0.5 : 1,
                     backgroundColor: theme === "dark" ? "#FFC8142C" : "#2e282ae6"
                   }
                 ]}
@@ -553,11 +584,7 @@ const App: React.FC = () => {
           </View>
 
           <TouchableOpacity style={styles.searchButton} onPress={handleSearch} disabled={loading}>
-            {loading ? (
-              <ActivityIndicator color="#FFC8148A" size="small" />
-            ) : (
-              <Ionicons name="search" size={22} color="#FFC814FF" />
-            )}
+            {loading ? <ActivityIndicator color="#FFC8148A" size="small" /> : <Ionicons name="search" size={22} color="#FFC814FF" />}
           </TouchableOpacity>
         </View>
         {/* Recent URLs dropdown with overlay for tapping outside */}
@@ -584,14 +611,7 @@ const App: React.FC = () => {
                 }
               ]}
             >
-              <FlatList
-                data={recentUrls}
-                keyExtractor={item => item.url}
-                renderItem={renderRecentUrlItem}
-                initialNumToRender={10}
-                maxToRenderPerBatch={5}
-                windowSize={5}
-              />
+              <FlatList data={recentUrls} keyExtractor={item => item.url} renderItem={renderRecentUrlItem} initialNumToRender={10} maxToRenderPerBatch={5} windowSize={5} />
             </View>
           </>
         )}
@@ -601,20 +621,14 @@ const App: React.FC = () => {
             <View style={styles.resultsHeader}>
               {selectionMode ? (
                 <View style={styles.selectionToolbar}>
-                  <Text style={[styles.selectionCount, {color: theme === "dark" ? "#CCCCCC" : "#4A4A4AFF"}]}>
-                    {uiState.selectedCount} items selected
-                  </Text>
+                  <Text style={[styles.selectionCount, {color: theme === "dark" ? "#CCCCCC" : "#4A4A4AFF"}]}>{uiState.selectedCount} items selected</Text>
                   <View style={styles.selectionActions}>
                     <TouchableOpacity
                       style={styles.selectionActionButton}
                       onPress={uiState.selectedCount === 0 ? () => {} : downloadSelectedItems}
                       disabled={uiState.selectedCount === 0}
                     >
-                      <Ionicons
-                        name="cloud-download"
-                        size={22}
-                        color={uiState.selectedCount === 0 ? "#CCCCCC" : "#FFC814FF"}
-                      />
+                      <Ionicons name="cloud-download" size={22} color={uiState.selectedCount === 0 ? "#CCCCCC" : "#FFC814FF"} />
                       <Text
                         style={[
                           styles.selectionActionText,
@@ -623,8 +637,7 @@ const App: React.FC = () => {
                           }
                         ]}
                       >
-                        Zip Selected{" "}
-                        {zipProgress > 0 && zipProgress < 100 ? <Text>{zipProgress?.toFixed(0) || ""}%</Text> : ""}
+                        Zip Selected {zipProgress > 0 && zipProgress < 100 ? <Text>{zipProgress?.toFixed(0) || ""}%</Text> : ""}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.selectionActionButton} onPress={selectAllItems}>
@@ -693,12 +706,7 @@ const App: React.FC = () => {
           </View>
         ) : (
           <View style={styles.emptyContainer}>
-            <Ionicons
-              name="images-outline"
-              size={80}
-              color={theme === "light" ? "#8F8F8FFF" : "#CCDDCC"}
-              style={styles.shadow}
-            />
+            <Ionicons name="images-outline" size={80} color={theme === "light" ? "#8F8F8FFF" : "#CCDDCC"} style={styles.shadow} />
             <TouchableWithoutFeedback onPress={focusInput}>
               <Text
                 style={[
@@ -721,13 +729,7 @@ const App: React.FC = () => {
           </MediaInfoModal>
         </DraggableToolbar>
         {/* Always include the WebView extractor when extraction is in progress */}
-        {extractionInProgress && (
-          <InvisibleWebViewExtractor
-            url={formatUrl(url)}
-            onMediaExtracted={handleWebViewResults}
-            onError={handleExtractionError}
-          />
-        )}
+        {extractionInProgress && <InvisibleWebViewExtractor url={formatUrl(url)} onMediaExtracted={handleWebViewResults} onError={handleExtractionError} />}
       </SafeAreaView>
     </GestureHandlerRootView>
   )

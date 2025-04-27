@@ -119,6 +119,7 @@ const useMediaExtractor = () => {
 
   // Add this cleaning function right after your getFormatFromFilename function
   // Enhance the filtering in the cleanMediaItems function
+  // Enhance the filtering in the cleanMediaItems function
   const cleanMediaItems = useCallback((items: MediaItem[]): MediaItem[] => {
     return items.filter(item => {
       // Filter out items with malformed or incomplete URLs
@@ -146,7 +147,7 @@ const useMediaExtractor = () => {
           // Common web formats
           ".jpg",
           ".jpeg",
-          ".png",
+          ".png", // Ensure PNG is included
           ".gif",
           ".webp",
           ".svg",
@@ -172,6 +173,11 @@ const useMediaExtractor = () => {
           ".xbm"
         ]
 
+        // Special case for PNG files to ensure they're not filtered out
+        if (item.format === "png" || extension === ".png") {
+          return true
+        }
+
         if (!extension || !validImageExtensions.includes(extension)) {
           return false
         }
@@ -179,45 +185,13 @@ const useMediaExtractor = () => {
         // Allow embedded videos without extensions
         if (item.isEmbed) return true
 
-        const validVideoExtensions = [
-          ".mp4",
-          ".webm",
-          ".ogg",
-          ".ogv",
-          ".mov",
-          ".avi",
-          ".wmv",
-          ".flv",
-          ".mkv",
-          ".m4v",
-          ".mpg",
-          ".mpeg",
-          ".3gp",
-          ".3g2",
-          ".ts",
-          ".mts",
-          ".m2ts"
-        ]
+        const validVideoExtensions = [".mp4", ".webm", ".ogg", ".ogv", ".mov", ".avi", ".wmv", ".flv", ".mkv", ".m4v", ".mpg", ".mpeg", ".3gp", ".3g2", ".ts", ".mts", ".m2ts"]
 
         if (!extension || !validVideoExtensions.includes(extension)) {
           return false
         }
       } else if (item.type === "audio") {
-        const validAudioExtensions = [
-          ".mp3",
-          ".wav",
-          ".ogg",
-          ".oga",
-          ".m4a",
-          ".aac",
-          ".flac",
-          ".wma",
-          ".opus",
-          ".mid",
-          ".midi",
-          ".aiff",
-          ".alac"
-        ]
+        const validAudioExtensions = [".mp3", ".wav", ".ogg", ".oga", ".m4a", ".aac", ".flac", ".wma", ".opus", ".mid", ".midi", ".aiff", ".alac"]
 
         if (!extension || !validAudioExtensions.includes(extension)) {
           return false
@@ -241,6 +215,25 @@ const useMediaExtractor = () => {
     if (lowerFilename.endsWith(".svg")) return "svg"
     if (lowerFilename.endsWith(".webp")) return "webp"
     if (lowerFilename.endsWith(".gif")) return "gif"
+    if (lowerFilename.endsWith(".mp4")) return "mp4"
+    if (lowerFilename.endsWith(".jpg") || lowerFilename.endsWith(".jpeg")) return "jpeg"
+    if (lowerFilename.endsWith(".png")) return "png"
+    if (lowerFilename.endsWith(".bmp")) return "bmp"
+    if (lowerFilename.endsWith(".tiff") || lowerFilename.endsWith(".tif")) return "tiff"
+    if (lowerFilename.endsWith(".ico")) return "ico"
+    if (lowerFilename.endsWith(".avif")) return "avif"
+    if (lowerFilename.endsWith(".heic") || lowerFilename.endsWith(".heif")) return "heic"
+    if (lowerFilename.endsWith(".mp3")) return "mp3"
+    if (lowerFilename.endsWith(".wav")) return "wav"
+    if (lowerFilename.endsWith(".ogg")) return "ogg"
+    if (lowerFilename.endsWith(".oga")) return "oga"
+    if (lowerFilename.endsWith(".aac")) return "aac"
+    if (lowerFilename.endsWith(".flac")) return "flac"
+    if (lowerFilename.endsWith(".wma")) return "wma"
+    if (lowerFilename.endsWith(".opus")) return "opus"
+    if (lowerFilename.endsWith(".mid") || lowerFilename.endsWith(".midi")) return "midi"
+    if (lowerFilename.endsWith(".aiff") || lowerFilename.endsWith(".alac")) return "aiff"
+    if (lowerFilename.endsWith(".webm")) return "webm"
     return "standard"
   }
 
@@ -293,11 +286,7 @@ const useMediaExtractor = () => {
         const mediaItems: MediaItem[] = []
 
         // Create a single efficient media extractor function
-        const extractMedia = (
-          selector: string,
-          getUrl: ($el: cheerio.Cheerio) => string | undefined,
-          type: "image" | "video"
-        ): void => {
+        const extractMedia = (selector: string, getUrl: ($el: cheerio.Cheerio) => string | undefined, type: "image" | "video"): void => {
           $(selector).each((_, element) => {
             const $el = $(element)
             const sourceUrl = getUrl($el)
